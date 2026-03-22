@@ -48,6 +48,21 @@ Python 3.11+, FastAPI, SQLAlchemy (async) + PostgreSQL, Redis, Aiogram 3, Alembi
 
 API по умолчанию слушает порт `8000`, Mini App: `/miniapp/`, админка: `/` и `/admin/`.
 
+## Mini App через ngrok (локально)
+
+Telegram принимает только **HTTPS** для Web App. Для теста с машины без своего домена удобен [ngrok](https://ngrok.com/) (или аналог: Cloudflare Tunnel, localtunnel).
+
+1. Поднимите стек: `docker compose up --build` (API на хосте: `http://127.0.0.1:8000`).
+2. В другом терминале: `ngrok http 8000` и скопируйте выданный **https://…** URL (например `https://abcd-12-34-56.ngrok-free.app`).
+3. В `.env` выставьте тот же хост:
+   - `PUBLIC_BASE_URL=https://abcd-12-34-56.ngrok-free.app`
+   - `WEBAPP_URL=https://abcd-12-34-56.ngrok-free.app/miniapp/` (со слэшем в конце пути по желанию, главное — рабочий URL страницы).
+4. Перезапустите контейнеры (`docker compose up -d`), чтобы подтянуть переменные.
+5. В [@BotFather](https://t.me/BotFather): для бота задайте домен Mini App / кнопку меню с тем же **https**-корнем, что и `PUBLIC_BASE_URL` (или прямой URL на `/miniapp/`).
+6. Откройте бота в Telegram и запустите Mini App из кнопки.
+
+**Замечания:** бесплатный ngrok меняет поддомен при перезапуске — обновляйте `.env` и BotFather. Страница-предупреждение ngrok в браузере на мобильном Telegram обычно не мешает открытию внутри клиента; если Mini App не грузится, проверьте CORS: в `development` у приложения часто разрешён `*`, иначе нужен ваш ngrok-оригин в настройках.
+
 ## Разработка без Docker
 
 ```bash
