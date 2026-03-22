@@ -30,6 +30,8 @@ dev = [
     "aiosqlite>=0.20.0",
     "types-redis>=4.6.0",
     "asgi-lifespan>=2.1.0",
+    "pre-commit>=4.5.1",
+    "commitizen>=4.13.9",
 ]
 
 [tool.ruff]
@@ -54,3 +56,9 @@ ignore_missing_imports = true
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
+
+# Commitizen: интерактивные коммиты — `cz commit` (Conventional Commits)
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "pep621"
+tag_format = "v$version"
