@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -48,3 +49,26 @@ async def test_admin_stats_requires_key() -> None:
     async with _lifespan_client() as client:
         response = await client.get("/api/admin/stats")
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_ai_backend_requires_key() -> None:
+    async with _lifespan_client() as client:
+        response = await client.get("/api/admin/ai-backend")
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_ai_backend_with_key() -> None:
+    key = os.environ["ADMIN_API_KEY"]
+    async with _lifespan_client() as client:
+        response = await client.get(
+            "/api/admin/ai-backend",
+            headers={"X-Admin-Key": key},
+        )
+    assert response.status_code == 200
+    payload = response.json()
+    assert "env_default" in payload
+    assert "available" in payload
+    assert "effective" in payload
+    assert isinstance(payload["available"], list)

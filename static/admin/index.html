@@ -25,6 +25,23 @@
         <p class="hint" id="auth-hint"></p>
       </section>
 
+      <section class="card" id="ai-card">
+        <h2>Режим ИИ</h2>
+        <p class="sub small">
+          Активный бэкенд для квиза и проверки кода. В <code>.env</code> задаётся
+          <code>AI_BACKEND</code>; здесь можно временно переопределить его (хранится в Redis, без перезапуска).
+        </p>
+        <button type="button" id="load-ai" class="primary">Загрузить текущий режим</button>
+        <div id="ai-status" class="ai-status muted" hidden></div>
+        <label class="row">
+          <span>Переключить на</span>
+          <select id="ai-select" class="ai-select" aria-label="Бэкенд ИИ"></select>
+        </label>
+        <button type="button" id="apply-ai">Применить переключение</button>
+        <button type="button" id="clear-ai">Сбросить override (только env)</button>
+        <p class="hint" id="ai-hint"></p>
+      </section>
+
       <section class="card" id="stats-card" hidden>
         <h2>Сводка</h2>
         <ul id="stats-list" class="stats"></ul>

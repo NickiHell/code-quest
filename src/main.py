@@ -14,9 +14,9 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from openai import AsyncOpenAI
 
-from src.core.ai_backend import AiBackend
 from src.core.config import Settings
-from src.infrastructure.ai.factory import create_ai_provider
+from src.infrastructure.ai.factory import build_provider_registry
+from src.infrastructure.ai.routing_provider import RoutingAIProvider
 from src.infrastructure.db.session import create_engine, create_session_factory
 from src.infrastructure.logging_config import configure_loguru
 from src.infrastructure.redis.client import create_redis_client
@@ -37,17 +37,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redis = create_redis_client(str(settings.redis_url))
 
         ollama_http: httpx.AsyncClient | None = None
-        if settings.ai_backend == AiBackend.ollama:
-            assert settings.ollama_base_url is not None
+        if settings.ollama_base_url is not None:
             ollama_http = httpx.AsyncClient(
                 base_url=str(settings.ollama_base_url).rstrip("/"),
                 timeout=httpx.Timeout(settings.ai_timeout),
             )
 
         openai_async: AsyncOpenAI | None = None
-        if settings.ai_backend == AiBackend.yandex_openai_responses:
-            assert settings.yandex_auth is not None
-            assert settings.yandex_folder_id is not None
+        if settings.yandex_folder_id and settings.yandex_auth:
             openai_async = AsyncOpenAI(
                 api_key=settings.yandex_auth,
                 base_url=str(settings.yandex_openai_base_url).rstrip("/"),
@@ -55,11 +52,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 timeout=float(settings.ai_timeout),
             )
 
-        ai_service = create_ai_provider(
+        registry = build_provider_registry(
             settings,
             httpx_client=ollama_http,
             openai_client=openai_async,
         )
+        ai_service = RoutingAIProvider(settings, redis, registry)
 
         app.state.settings = settings
         app.state.engine = engine
