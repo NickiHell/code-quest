@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "0001"
@@ -47,8 +48,18 @@ def upgrade() -> None:
     op.create_table(
         "submissions",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("task_id", sa.Integer(), sa.ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id",
+            sa.Integer(),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "task_id",
+            sa.Integer(),
+            sa.ForeignKey("tasks.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("code", sa.Text(), nullable=False),
         sa.Column("feedback", sa.Text(), nullable=True),
         sa.Column("score", sa.Integer(), nullable=False, server_default="0"),
@@ -69,7 +80,12 @@ def upgrade() -> None:
     op.create_table(
         "quiz_attempts",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id",
+            sa.Integer(),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column(
             "question_id",
             sa.Integer(),

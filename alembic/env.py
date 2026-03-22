@@ -10,7 +10,6 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-
 from src.core.config import Settings
 from src.infrastructure.db.models.base import Base
 from src.infrastructure.db.models.quiz_attempt import QuizAttemptModel  # noqa: F401

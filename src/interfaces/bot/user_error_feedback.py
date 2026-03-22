@@ -42,9 +42,7 @@ def brief_user_message(exc: BaseException) -> str:
     if isinstance(exc, TelegramRetryAfter):
         return "Слишком много действий подряд. Подождите немного и повторите."
     if isinstance(exc, TelegramForbiddenError):
-        return (
-            "Бот не может написать в этот чат: возможен бан или не хватает прав."
-        )
+        return "Бот не может написать в этот чат: возможен бан или не хватает прав."
     if isinstance(exc, TelegramNotFound):
         return "Чат или сообщение недоступны. Обновите диалог или откройте бота заново."
     if isinstance(exc, TelegramUnauthorizedError):
