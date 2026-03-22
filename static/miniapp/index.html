@@ -7,6 +7,7 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <meta name="theme-color" content="#0c1222" />
+    <base href="/miniapp/" />
     <title>Code Quest</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,7 +16,7 @@
       rel="stylesheet"
     />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="/miniapp/styles.css" />
+    <link rel="stylesheet" href="styles.css?v=6" />
   </head>
   <body>
     <a class="skip-link" href="#quiz-card">К квизу</a>
@@ -25,8 +26,8 @@
         <p class="eyebrow">Квиз по коду</p>
         <h1 id="app-title">Code Quest</h1>
         <p class="lede">
-          Выберите грейд, нажмите «Новый вопрос» и ответьте на MCQ из <strong>10 вариантов</strong> —
-          очки попадут в общий рейтинг. Удачи!
+          Квиз по <strong>Python</strong>, алгоритмам и структурам данных — выберите тему и грейд,
+          нажмите «Новый вопрос» и ответьте на MCQ из <strong>10 вариантов</strong>.
         </p>
       </header>
 
@@ -46,6 +47,26 @@
           <div class="card__head">
             <h2 id="quiz-heading">Квиз</h2>
             <p class="card__sub">Один вопрос — десять вариантов ответа</p>
+          </div>
+
+          <div class="field">
+            <span class="field__label" id="topic-label">Тема</span>
+            <div
+              class="topic-seg"
+              role="radiogroup"
+              aria-labelledby="topic-label"
+              id="topic-group"
+            >
+              <button type="button" class="topic-chip" data-topic="python" role="radio" aria-checked="true">
+                Python
+              </button>
+              <button type="button" class="topic-chip" data-topic="algorithms" role="radio" aria-checked="false">
+                Алгоритмы
+              </button>
+              <button type="button" class="topic-chip" data-topic="data_structures" role="radio" aria-checked="false">
+                Структуры данных
+              </button>
+            </div>
           </div>
 
           <div class="field">
@@ -80,9 +101,10 @@
             class="quiz-body quiz-body--empty muted"
             role="region"
             aria-live="polite"
+            aria-atomic="false"
           >
             <p class="quiz-body__hint">
-              Нажмите «Новый вопрос», чтобы получить задачу. Можно менять грейд до запроса.
+              Выберите тему и грейд, нажмите «Новый вопрос». ИИ генерирует вопрос — это займёт несколько секунд.
             </p>
           </div>
           <div id="quiz-options" class="options-grid" hidden></div>
@@ -117,6 +139,6 @@
         <p id="hint" class="footer__hint"></p>
       </footer>
     </div>
-    <script type="module" src="/miniapp/app.js"></script>
+    <script type="module" src="app.js?v=6"></script>
   </body>
 </html>

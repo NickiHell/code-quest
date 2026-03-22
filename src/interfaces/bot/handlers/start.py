@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 
@@ -26,12 +26,13 @@ async def handle_start_private(message: Message) -> None:
 
 
 @router.message(CommandStart(), F.chat.type.in_({"group", "supergroup"}))
-async def handle_start_group(message: Message) -> None:
+async def handle_start_group(message: Message, bot: Bot) -> None:
     """Кратко в группе + inline (Mini App и веб)."""
     settings = Settings()
+    me = await bot.me()
     await message.reply(
         "Code Quest в этой группе.\n"
-        "Используйте /menu — там кнопка <b>Mini App</b> (внутри Telegram) "
-        "и ссылка на <b>веб-панель</b>.",
-        reply_markup=group_menu_inline(settings),
+        "Используйте /menu — кнопка <b>Mini App</b> открывает квиз "
+        "<b>внутри Telegram</b> (t.me), веб-панель — в браузере.",
+        reply_markup=group_menu_inline(settings, bot_username=me.username),
     )

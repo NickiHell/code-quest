@@ -22,19 +22,33 @@ def build_evaluate_code_prompt(code: str, task_description: str) -> str:
     )
 
 
+_ALLOWED_TOPICS = {"python", "algorithms", "data_structures"}
+
+_TOPIC_LABELS: dict[str, str] = {
+    "python": "Python programming language (syntax, built-ins, stdlib, idioms)",
+    "algorithms": "classic algorithms (sorting, searching, graph, dynamic programming, greedy)",
+    "data_structures": "data structures (arrays, linked lists, trees, graphs, heaps, hash tables)",
+}
+
+
 def build_quiz_generation_prompt(grade: str, topic: str | None) -> str:
-    """Промпт генерации MCQ (строгий JSON)."""
-    topic_line = f"Topic hint: {topic}\n" if topic else ""
+    """Промпт генерации MCQ — строго Python / алгоритмы / структуры данных."""
+    topic_key = (topic or "").strip().lower()
+    if topic_key not in _ALLOWED_TOPICS:
+        topic_key = "python"
+    topic_desc = _TOPIC_LABELS[topic_key]
     return (
-        "You are an expert technical interviewer. Produce ONE multiple-choice question "
+        "You are an expert Python interviewer. "
+        f"Produce ONE multiple-choice question strictly about {topic_desc} "
         f"for a software engineer at grade level: {grade}.\n"
-        f"{topic_line}"
-        "Return ONLY a JSON object with keys:\n"
-        '  "question_text": string (Russian),\n'
-        '  "options": array of exactly 10 distinct strings (Russian, each one plausible),\n'
-        '  "correct_index": integer 0-9 (index of the only fully correct option),\n'
-        f'  "grade": string (repeat "{grade}").\n'
-        "No markdown, no commentary — only raw JSON."
+        "IMPORTANT: the question MUST be about Python or algorithms/data structures only. "
+        "Do NOT ask about other languages, frameworks, or unrelated topics.\n"
+        "Return ONLY a JSON object with these keys:\n"
+        '  "question_text": string (in Russian),\n'
+        '  "options": array of exactly 10 distinct strings (in Russian, each plausible),\n'
+        '  "correct_index": integer 0-9 (index of the single correct option),\n'
+        f'  "grade": "{grade}".\n'
+        "No markdown, no explanation — raw JSON only."
     )
 
 

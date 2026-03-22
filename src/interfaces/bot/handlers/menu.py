@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from aiogram import Router
+from aiogram import Bot, Router
 from aiogram.enums import ChatType
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -19,16 +19,20 @@ def _is_group(message: Message) -> bool:
 
 
 @router.message(Command("menu"))
-async def cmd_menu(message: Message) -> None:
+async def cmd_menu(message: Message, bot: Bot) -> None:
     """Показать кнопки Mini App и веб-панели."""
     settings = Settings()
+    me = await bot.me()
     text = (
         "<b>Меню Code Quest</b>\n\n"
         "• <b>Mini App</b> — квиз с 10 вариантами ответа, грейд выбирается в приложении.\n"
         "• <b>Веб-панель</b> — статистика и управление в браузере по кнопке ниже.\n"
     )
     if _is_group(message):
-        await message.reply(text, reply_markup=group_menu_inline(settings))
+        await message.reply(
+            text,
+            reply_markup=group_menu_inline(settings, bot_username=me.username),
+        )
     else:
         await message.answer(
             text,
@@ -41,16 +45,20 @@ async def cmd_menu(message: Message) -> None:
 
 
 @router.message(Command("app"))
-async def cmd_app(message: Message) -> None:
+async def cmd_app(message: Message, bot: Bot) -> None:
     """Быстрый вход в Mini App."""
     settings = Settings()
+    me = await bot.me()
     if _is_group(message):
         text = (
-            "Нажмите кнопку «Code Quest — Mini App» — откроется страница квиза по ссылке. "
-            "В личке с ботом то же приложение можно открыть внутри Telegram. "
+            "Нажмите кнопку «Code Quest — Mini App» — приложение откроется "
+            "<b>внутри Telegram</b> (ссылка t.me). "
             "В квизе выберите грейд (junior / middle / senior) и ответьте на вопрос."
         )
-        await message.reply(text, reply_markup=group_menu_inline(settings))
+        await message.reply(
+            text,
+            reply_markup=group_menu_inline(settings, bot_username=me.username),
+        )
     else:
         text = (
             "Нажмите кнопку — приложение откроется внутри Telegram. "
@@ -60,9 +68,10 @@ async def cmd_app(message: Message) -> None:
 
 
 @router.message(Command("help"))
-async def cmd_help(message: Message) -> None:
+async def cmd_help(message: Message, bot: Bot) -> None:
     """Краткая справка."""
     settings = Settings()
+    me = await bot.me()
     base = str(settings.public_base_url).rstrip("/")
     text = (
         "<b>Справка</b>\n\n"
@@ -73,6 +82,9 @@ async def cmd_help(message: Message) -> None:
         "В группе боту желательны права администратора, чтобы меню и кнопки отображались стабильно."
     )
     if _is_group(message):
-        await message.reply(text, reply_markup=group_menu_inline(settings))
+        await message.reply(
+            text,
+            reply_markup=group_menu_inline(settings, bot_username=me.username),
+        )
     else:
         await message.answer(text)

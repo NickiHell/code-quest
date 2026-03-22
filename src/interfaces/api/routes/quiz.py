@@ -6,7 +6,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from src.core.exceptions import DomainError, NotFoundError
+from src.core.exceptions import DomainError, ExternalServiceError, NotFoundError
 from src.interfaces.api.deps import (
     get_leaderboard_view_use_case,
     get_next_quiz_use_case,
@@ -44,6 +44,12 @@ async def next_question(
     except ValueError as exc:
         logger.exception("quiz generation failed")
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except ExternalServiceError as exc:
+        logger.warning("quiz AI unavailable: %s", exc.message)
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=exc.message,
+        ) from exc
     except DomainError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
 

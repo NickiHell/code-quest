@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from typing import Any, Self
+from urllib.parse import urlparse
 
 from pydantic import AnyUrl, Field, HttpUrl, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -93,6 +94,22 @@ class Settings(BaseSettings):
     sandbox_timeout: int = Field(default=5, ge=1, le=300)
     sandbox_memory_limit: str = "256m"
     sandbox_network_disabled: bool = True
+
+    @field_validator("public_base_url", mode="before")
+    @classmethod
+    def public_base_must_be_origin(cls, value: Any) -> Any:
+        """CORS и ссылки ожидают корень сайта без пути (не …/miniapp/)."""
+        if value is None or not isinstance(value, str):
+            return value
+        s = value.strip()
+        if not s.startswith(("http://", "https://")):
+            return value
+        parsed = urlparse(s)
+        if not parsed.netloc:
+            return value
+        if parsed.path not in ("", "/"):
+            return f"{parsed.scheme}://{parsed.netloc}"
+        return s.rstrip("/") or value
 
     @field_validator("database_url")
     @classmethod
