@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Code Quest — админка</title>
+    <link rel="stylesheet" href="/admin/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Code Quest</h1>
+        <p class="sub">Веб-панель: статистика и управление (в браузере). Mini App живёт в Telegram.</p>
+      </header>
+
+      <section class="card" id="auth-card">
+        <h2>Доступ</h2>
+        <p>Введите ключ из переменной окружения <code>ADMIN_API_KEY</code> (отправляется в заголовке <code>X-Admin-Key</code>).</p>
+        <label class="row">
+          <span>Ключ</span>
+          <input type="password" id="admin-key" autocomplete="off" placeholder="Секретный ключ" />
+        </label>
+        <button type="button" id="save-key">Сохранить в браузере</button>
+        <button type="button" id="load-stats" class="primary">Загрузить статистику</button>
+        <p class="hint" id="auth-hint"></p>
+      </section>
+
+      <section class="card" id="stats-card" hidden>
+        <h2>Сводка</h2>
+        <ul id="stats-list" class="stats"></ul>
+        <h3>Топ лидерборда (Redis)</h3>
+        <pre id="leaderboard"></pre>
+      </section>
+    </div>
+    <script src="/admin/admin.js"></script>
+  </body>
+</html>

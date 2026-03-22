@@ -1,0 +1,93 @@
+services:
+  api:
+    build: .
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "src.main:create_app",
+        "--factory",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+      ]
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      PYTHONPATH: /app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./static:/app/static
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - codequest
+
+  bot:
+    build: .
+    command: ["python", "-m", "src.interfaces.bot.loader"]
+    env_file: .env
+    environment:
+      PYTHONPATH: /app
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    depends_on:
+      api:
+        condition: service_started
+      db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - codequest
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: codequest
+      POSTGRES_PASSWORD: codequest
+      POSTGRES_DB: codequest
+    ports:
+      # Чтобы запускать бота на хосте, если из Docker нет доступа к api.telegram.org
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - codequest
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codequest"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - codequest
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  codequest:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
