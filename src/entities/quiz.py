@@ -8,6 +8,19 @@ from typing import Final
 
 MCQ_OPTION_COUNT: Final[int] = 5
 
+# Бывшие junior / middle / senior — для строк в БД и API
+_LEGACY_GRADE_TO_CANONICAL: Final[dict[str, str]] = {
+    "junior": "easy",
+    "middle": "medium",
+    "senior": "expert",
+}
+
+
+def normalize_quiz_grade(grade: str) -> str:
+    """Привести уровень сложности к каноническому виду (easy/medium/expert)."""
+    g = grade.strip().lower()
+    return _LEGACY_GRADE_TO_CANONICAL.get(g, g)
+
 
 @dataclass(frozen=True)
 class QuizQuestionData:

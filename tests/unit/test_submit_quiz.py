@@ -34,7 +34,7 @@ def _question() -> QuizQuestionData:
         question_text="Q?",
         options=("a", "b", "c", "d", "e"),
         correct_index=2,
-        grade="junior",
+        grade="easy",
     )
 
 

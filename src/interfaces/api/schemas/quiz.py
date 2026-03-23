@@ -8,11 +8,11 @@ from pydantic import BaseModel, Field
 
 
 class Grade(StrEnum):
-    """Грейд кандидата."""
+    """Сложность вопроса в квизе."""
 
-    junior = "junior"
-    middle = "middle"
-    senior = "senior"
+    easy = "easy"
+    medium = "medium"
+    expert = "expert"
 
 
 class NextQuizRequest(BaseModel):

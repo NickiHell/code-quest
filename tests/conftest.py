@@ -62,7 +62,7 @@ def mock_ai_service() -> AbstractAIProvider:
             question_text="Тестовый вопрос?",
             options=tuple(f"Вариант {i}" for i in range(5)),
             correct_index=0,
-            grade="junior",
+            grade="easy",
         ),
     )
     mock.explain_quiz_choice = AsyncMock(return_value="Краткий фидбек.")

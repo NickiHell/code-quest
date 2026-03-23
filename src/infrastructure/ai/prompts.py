@@ -7,7 +7,7 @@ import logging
 import random
 from typing import Any, Final
 
-from src.entities.quiz import MCQ_OPTION_COUNT, QuizQuestionData
+from src.entities.quiz import MCQ_OPTION_COUNT, QuizQuestionData, normalize_quiz_grade
 from src.infrastructure.ai.json_extract import extract_json_object
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,12 @@ _ALLOWED_TOPICS = {
     "land_navigation",
     "fishing",
     "car_repair",
+    "uavs",
+    "military_tactics",
+    "reb",
+    "lrs",
+    "flight_controllers",
+    "aerodynamics",
 }
 
 # Конкретные аспекты — Python случайно выберет один и вставит в промпт
@@ -201,12 +207,123 @@ _TOPIC_ASPECTS: dict[str, list[str]] = {
         "hybrid and EV basics: high voltage safety, 12V battery, charging",
         "common tools: socket sets, torque specs, thread repair (helicoil overview)",
     ],
+    "uavs": [
+        "multicopter vs fixed-wing UAV: thrust, stall, endurance trade-offs",
+        "propeller and motor basics: KV, pitch, ESC, LiPo cell count and C-rating",
+        "flight modes: GPS hold, attitude, altitude, return-to-home (RTH)",
+        "sensors: IMU, barometer, magnetometer, GPS — what each corrects",
+        "geofencing, no-fly zones, altitude limits in civil aviation",
+        "registration and licensing (overview): when UAV requires pilot credentials",
+        "battery safety: storage voltage, charging, fire risk, damaged cells",
+        "link and control: RC vs digital link, failsafe behaviour, loss of signal",
+        "camera gimbals: 2-axis vs 3-axis, rolling shutter vs global shutter",
+        "mission planning: waypoints, survey grids, overlap in photogrammetry",
+        "weather limits: wind, rain, gusts vs UAV class",
+        "payload weight and centre of gravity effects on flight",
+        "FPV basics: latency, goggles, OSD, line-of-sight rules",
+        "detect-and-avoid concepts (overview): ADS-B, sense, BVLOS research",
+        "counter-UAS and legal interception (high-level regulatory concepts only)",
+        "agricultural and inspection use cases: multispectral, thermal (overview)",
+    ],
+    "military_tactics": [
+        "levels of war: strategic, operational, tactical — definitions and examples",
+        "offensive vs defensive operations: when each is appropriate",
+        "terrain: key terrain, observation, fields of fire, cover vs concealment",
+        "manoeuvre warfare vs attrition — core ideas",
+        "flanking, envelopment, frontal attack — classic forms of manoeuvre",
+        "defence in depth vs linear defence — trade-offs",
+        "ambush and counter-ambush: principles (historical examples)",
+        "reconnaissance and security: screen, guard, cover in movement",
+        "combined arms: infantry, artillery, armour coordination (conceptual)",
+        "urban operations: challenges of built-up areas (generic principles)",
+        "amphibious and river crossing — planning factors (overview)",
+        "logistics and sustainment: why they constrain tactical options",
+        "command and control: span of control, mission command (conceptual)",
+        "historical battles as case studies: Cannae, encirclement, Fabian strategy (facts only)",
+        "small-unit tactics: fire and movement, bounding overwatch (generic theory)",
+        "NATO vs Warsaw Pact doctrinal differences during Cold War (high-level)",
+        "asymmetric warfare: guerrilla vs conventional — definitions, not how-to",
+    ],
+    "reb": [
+        "РЭБ: задачи подавления, маскировки, разведки в СВЧ-диапазоне (общетеоретически)",
+        "виды воздействия: активное подавление, пассивная маскировка, имитация (принципы)",
+        "помехи по носителю: непрерывная, импульсная, модулированная — идея и применение",
+        "подавление каналов связи и наведения: что обычно защищают (концептуально)",
+        "радиоразведка: перехват, пеленгация, классификация излучений (уровень учебника)",
+        "ЭПР и маскировка: снижение заметности для РЛС (общие принципы)",
+        "ECCM: защита от помех, смена частоты, узкие лучи, кодирование (идеи)",
+        "спектр и полосы: HF/VHF/UHF/SHF — где что применяют в общих чертах",
+        "бортовые и наземные комплексы РЭБ: роли в системе (без ТТХ конкретных изделий)",
+        "правовые рамки гражданского применения: ограничения на глушение связи",
+        "электромагнитная совместимость и уязвимость аппаратуры (общие понятия)",
+        "космический и наземный SIGINT — различие задач (обзорно)",
+        "кибер-РЭБ vs классическая РЭБ — границы терминов",
+        "исторические этапы: от мешков с фольгой до современных комплексов (факты)",
+        "безопасность персонала: излучение, дальность, зоны ограничения (обучающий уровень)",
+        "этика и закон: только образовательный контент, без инструкций по изготовлению помех",
+    ],
+    "lrs": [
+        "радиолокация: импульсный режим, дальность по задержке сигнала",
+        "доплеровский сдвиг частоты и измерение скорости цели",
+        "разрешающая способность по дальности и по углу (принципы)",
+        "диаграмма направленности антенны, ширина луча, усиление",
+        "обзорные и целеуказания РЛС: различие ролей в системе ПВО/навигации (концептуально)",
+        "ФАР: фазированная антенная решётка, электронное сканирование луча",
+        "метеорологические и навигационные РЛС: отличия задач",
+        "СВЧ-диапазоны для локации: поглощение, дождь, зона обзора",
+        "пассивная локация и бистатические схемы (идея)",
+        "маркировка целей: IFF, ответчики, коды (общие принципы)",
+        "подавление боковых лепестков и УБЛ (идея, без расчётов оружия)",
+        "РЛС на БПЛА и авиации: ограничения по массе и энергии",
+        "радиолокационные изображения: SAR, разрешение (обзорно)",
+        "история: магнетрон, ранние РЛС Второй мировой (факты)",
+        "безопасность: облучение, нормы для гражданских радаров (общие сведения)",
+        "только учебный контент: без ТТХ секретных систем и без инструкций по обходу ПВО",
+    ],
+    "flight_controllers": [
+        "роль полётного контроллера: сенсоры → оценка состояния → команды на исполнительные органы",
+        "IMU: гироскопы, акселерометры, магнитометр — что измеряют и какие ошибки типичны",
+        "сведение данных: комплементарный фильтр, Kalman (идея, без вывода формул в ответе)",
+        "контуры PID: rate vs angle, настройка P/I/D на интуитивном уровне",
+        "режимы полёта: стабилизация, удержание высоты, удержание позиции, RTH (принципы)",
+        "PWM, OneShot, DShot — зачем нужны цифровые протоколы к регуляторам",
+        "ESC: частота, направление вращения, синхронизация с мотором",
+        "барометр и удержание высоты: дрейф, вентиляция корпуса",
+        "GPS/ГНСС: точность, частота обновления, RTK (обзорно)",
+        "арминг, failsafe: потеря сигнала, низкий заряд, поведение по умолчанию",
+        "вибрации и шум гироскопа: фильтрация, демпфирование рамы",
+        "калибровка: аксель, магнит, уровень горизонта",
+        "избыточность сенсоров и отказоустойчивость (идея)",
+        "прошивки и стеки: общие отличия open-source стеков (без пошаговых хаков)",
+        "безопасность: пропеллеры, ток, ЛСП — только общие правила, без модификаций под вред",
+        "только образовательный контент: без обхода ограничителей и закона",
+    ],
+    "aerodynamics": [
+        "подъёмная сила: угол атаки, обводы профиля, обрыв потока (учебный уровень)",
+        "профиль крыла: кривизна, угол установки, центр давления vs центр масс",
+        "индуктивное и профильное сопротивление, поляра крыла (идеи)",
+        "число Рейнольдса и режимы обтекания: ламинарный и турбулентный пограничный слой",
+        "скольжение: соотношение крена и скольжения, крутой вираж",
+        "стабильность: продольная, боковая, диэдр крыла, запилёность",
+        "винт/пропеллер: шаг, диаметр, КПД, вихревое кольцо (обзорно)",
+        "вертолётный несущий винт: циклический шаг, соосная схема vs классика (принципы)",
+        "сжимаемость: число Маха, критическое М, звуковой барьер (общие факты)",
+        "спутник и космос: сопло, сверхзвук в сопле (учебно, без ТТХ ракет)",
+        "вихри на крыле: закон Кутты–Жуковского на уровне «что означает»",
+        "поток в трубе и вокруг тела: торможение, разрежение",
+        "авиационные единицы: узлы, футы в минуту, перевод в СИ (задачи)",
+        "безопасность испытаний моделей: только общие принципы",
+        "только учебная аэродинамика: без расчётов оружия и без данных закрытых проектов",
+    ],
 }
 
 _GRADE_HINTS: dict[str, str] = {
-    "junior": "appropriate for a Junior developer — focus on fundamentals and common pitfalls",
-    "middle": "appropriate for a Middle developer — include nuanced behaviour or edge cases",
-    "senior": "for a Senior developer — deep internals, subtle gotchas, design trade-offs",
+    "easy": (
+        "лёгкий уровень: как для человека, который только познакомился с темой. "
+        "Одно простое понятие или факт, без ловушек и без многоходовых рассуждений"
+    ),
+    "medium": "средний уровень: нюансы и типичные заблуждения",
+    "expert": "экспертный уровень: глубина, тонкости, неочевидные детали",
 }
 
 
@@ -215,7 +332,7 @@ def build_quiz_generation_prompt(
     topic: str | None,
     seen_questions: list[str] | None = None,
 ) -> str:
-    """Промпт генерации MCQ — строго Python / алгоритмы / структуры данных."""
+    """Промпт генерации MCQ по выбранной теме и грейду."""
     topic_key = (topic or "").strip().lower()
     if topic_key not in _ALLOWED_TOPICS:
         topic_key = "python"
@@ -223,12 +340,55 @@ def build_quiz_generation_prompt(
     # Выбираем один конкретный аспект на стороне Python — так промпт остаётся коротким
     # и модели не нужно самой принимать решение о разнообразии
     aspect = random.choice(_TOPIC_ASPECTS[topic_key])
-    grade_hint = _GRADE_HINTS.get(grade.lower(), f"grade level: {grade}")
+    canon = normalize_quiz_grade(grade)
+    grade_hint = _GRADE_HINTS.get(canon, f"сложность: {grade}")
+
+    if canon == "easy":
+        level_rules = (
+            "- EASY: вопрос должен быть по ощущениям «простым» — его может ответить тот, кто "
+            "прочитал вводный материал по теме. Ровно одна идея, без цепочки шагов и без "
+            "разбора краевых случаев.\n"
+            "- Неправильные варианты должны отличаться от верного заметно для новичка "
+            "(типичная путаница имён или смыслов — но не четыре одинаково правдоподобных "
+            "«экспертных» ответа).\n"
+            "- Если выбранный аспект темы звучит сложно, сформулируй вопрос только про самое "
+            "элементарное определение, назначение или факт из этой области.\n"
+            "- Допускаются прямолинейные и «учебниковые» формулировки — не усложняй ради "
+            "интереса.\n"
+            "- Без длинного кода в тексте вопроса; если нужен код — одна короткая строка и "
+            "вопрос только про самое прямое чтение результата.\n"
+        )
+    else:
+        level_rules = (
+            "- Сделай вопрос конкретным и нетривиальным (не стиль «что делает len()?»).\n"
+            "- Четыре неверных ответа — правдоподобные, с типичными заблуждениями или тонкими "
+            "различиями, где уместно.\n"
+        )
+
+    edu_safety = ""
+    if topic_key in (
+        "uavs",
+        "military_tactics",
+        "reb",
+        "lrs",
+        "flight_controllers",
+        "aerodynamics",
+    ):
+        edu_safety = (
+            "- Educational, neutral content only (theory, history, regulations, technology). "
+            "No instructions for harm, no extremism, no facilitation of illegal activity.\n"
+        )
 
     avoid_block = ""
     if seen_questions:
         items = "\n".join(f"- {q}" for q in seen_questions)
         avoid_block = f"\nDo NOT repeat or rephrase these already-asked questions:\n{items}\n"
+
+    code_hint = (
+        "- If useful, include a short code snippet in question_text (no markdown fences).\n\n"
+        if canon != "easy"
+        else "\n"
+    )
 
     return (
         "You are a quiz expert. Generate ONE multiple-choice question in Russian.\n\n"
@@ -236,13 +396,13 @@ def build_quiz_generation_prompt(
         f"Level: {grade_hint}\n"
         f"{avoid_block}\n"
         "Rules:\n"
+        f"{edu_safety}"
         "- All text (question and options) must be in Russian.\n"
-        "- Make the question specific and non-trivial (no 'what does len() do?' style).\n"
-        "- You MUST output exactly 5 options: one correct and four plausible wrong answers "
-        "(common misconceptions or subtle differences).\n"
+        f"{level_rules}"
+        "- You MUST output exactly 5 options: one correct and four wrong answers.\n"
         '- The "options" field MUST be a single JSON array of exactly five strings, '
         'e.g. ["a","b","c","d","e"] — do NOT split into multiple arrays.\n'
-        "- If useful, include a short code snippet in question_text (no markdown fences).\n\n"
+        f"{code_hint}"
         "Respond with ONLY one JSON object, no markdown code fences, no text after the closing }:\n"
         '{"question_text": "...", '
         '"options": ["opt0", "opt1", "opt2", "opt3", "opt4"], '
@@ -286,7 +446,8 @@ def quiz_data_from_dict(data: dict[str, Any], *, default_grade: str) -> QuizQues
     q = str(data.get("question_text", "")).strip()
     opts = data.get("options")
     ci = data.get("correct_index")
-    g = str(data.get("grade", default_grade)).strip()
+    raw_g = str(data.get("grade", default_grade)).strip()
+    g = normalize_quiz_grade(raw_g)
 
     if not q or not isinstance(opts, list) or len(opts) != MCQ_OPTION_COUNT:
         msg = "Invalid question shape from model"

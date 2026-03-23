@@ -21,7 +21,7 @@ async def test_next_quiz_returns_personal_question_number() -> None:
         question_text="2+2=?",
         options=("1", "2", "3", "4", "5"),
         correct_index=3,
-        grade="middle",
+        grade="medium",
     )
 
     users = AsyncMock(spec=AbstractUserRepository)
@@ -55,7 +55,7 @@ async def test_next_quiz_returns_personal_question_number() -> None:
     redis.pipeline = MagicMock(return_value=pipe)
 
     uc = NextQuizUseCase(users=users, questions=questions, ai=ai, redis=redis)
-    out = await uc.execute(telegram_id=99, username="t", grade="middle", topic="python")
+    out = await uc.execute(telegram_id=99, username="t", grade="medium", topic="python")
 
     assert out.id == 42
     assert out.question_number == 7

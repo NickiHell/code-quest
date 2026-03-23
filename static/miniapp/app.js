@@ -257,7 +257,7 @@ async function ensureTelegramUser(maxMs = 10000) {
 
 function getSelectedGrade() {
   const active = document.querySelector('.grade-chip[aria-checked="true"]');
-  return active?.dataset.grade ?? "middle";
+  return active?.dataset.grade ?? "medium";
 }
 
 function getSelectedTopic() {
@@ -305,7 +305,7 @@ function renderQuestion(data) {
   if (body) {
     body.classList.remove("quiz-body--empty", "muted");
     body.innerHTML = `
-      <div class="badge"><span class="dot"></span>${escapeHtml(data.grade)}</div>
+      <div class="badge"><span class="dot"></span>${escapeHtml(GRADE_LABELS[data.grade] ?? data.grade)}</div>
       <div class="task-title">Вопрос №${data.question_number ?? data.id}</div>
       <div>${escapeHtml(data.question_text)}</div>
     `;
@@ -407,6 +407,12 @@ async function submitAnswer(chosenIndex) {
   }
 }
 
+const GRADE_LABELS = {
+  easy: "Лёгкий",
+  medium: "Средний",
+  expert: "Эксперт",
+};
+
 const TOPIC_LABELS = {
   python: "Python",
   javascript: "JavaScript",
@@ -417,6 +423,12 @@ const TOPIC_LABELS = {
   land_navigation: "Навигация на местности",
   fishing: "Рыбалка",
   car_repair: "Ремонт авто",
+  uavs: "БПЛА",
+  military_tactics: "Военная тактика",
+  reb: "РЭБ",
+  lrs: "ЛРС",
+  flight_controllers: "Полётные контроллеры",
+  aerodynamics: "Аэродинамика",
 };
 
 function showGenerating(topic, grade) {
@@ -427,6 +439,7 @@ function showGenerating(topic, grade) {
   if (opts) { opts.hidden = true; opts.innerHTML = ""; }
   if (!body) return;
   const topicLabel = TOPIC_LABELS[topic] ?? topic;
+  const gradeLabel = GRADE_LABELS[grade] ?? grade;
   body.classList.remove("quiz-body--empty", "muted");
   body.innerHTML = `
     <div class="generating">
@@ -435,7 +448,7 @@ function showGenerating(topic, grade) {
       </div>
       <p class="generating__text">
         ИИ генерирует вопрос<br>
-        <span class="muted" style="font-size:13px">${escapeHtml(topicLabel)} · ${escapeHtml(grade)}</span>
+        <span class="muted" style="font-size:13px">${escapeHtml(topicLabel)} · ${escapeHtml(gradeLabel)}</span>
       </p>
       <p class="generating__hint muted">Первый запрос может занять 10–30 секунд — модель прогревается</p>
     </div>

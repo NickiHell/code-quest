@@ -28,7 +28,7 @@ async def cmd_app(message: Message, bot: Bot) -> None:
             "<b>Code Quest</b>\n\n"
             "Нажмите кнопку «Code Quest — Mini App» — приложение откроется "
             "<b>внутри Telegram</b> (ссылка t.me). "
-            "В квизе выберите тему и грейд (junior / middle / senior), "
+            "В квизе выберите тему и сложность (лёгкий / средний / эксперт), "
             "5 вариантов ответа; очки зависят от сложности."
         )
         await message.reply(

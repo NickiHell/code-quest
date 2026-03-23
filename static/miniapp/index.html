@@ -16,7 +16,7 @@
       rel="stylesheet"
     />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="styles.css?v=13" />
+    <link rel="stylesheet" href="styles.css?v=17" />
   </head>
   <body>
     <a class="skip-link" href="#quiz-card">К квизу</a>
@@ -25,9 +25,11 @@
         <p class="eyebrow">Квиз</p>
         <h1 id="app-title">Code Quest</h1>
         <p class="lede">
-          Код, логика, <strong>шахматы</strong>, <strong>го</strong>, навигация, рыбалка, авто — выберите тему и сложность,
+          Код, логика, <strong>шахматы</strong>, <strong>го</strong>, навигация, рыбалка, авто,
+          <strong>БПЛА</strong>, <strong>военная тактика</strong>, <strong>РЭБ</strong>, <strong>ЛРС</strong>,
+          <strong>полётные контроллеры</strong>, <strong>аэродинамика</strong> — выберите тему и сложность,
           ответьте на вопрос (обычно <strong>5 вариантов</strong>). Очки: <strong>+5</strong> / <strong>+10</strong> /
-          <strong>+50</strong> по грейду.
+          <strong>+50</strong> по сложности (лёгкий / средний / эксперт).
         </p>
       </header>
 
@@ -84,6 +86,24 @@
               <button type="button" class="topic-chip" data-topic="car_repair" role="radio" aria-checked="false">
                 Авто
               </button>
+              <button type="button" class="topic-chip" data-topic="uavs" role="radio" aria-checked="false">
+                БПЛА
+              </button>
+              <button type="button" class="topic-chip" data-topic="military_tactics" role="radio" aria-checked="false">
+                Военная тактика
+              </button>
+              <button type="button" class="topic-chip" data-topic="reb" role="radio" aria-checked="false">
+                РЭБ
+              </button>
+              <button type="button" class="topic-chip" data-topic="lrs" role="radio" aria-checked="false">
+                ЛРС
+              </button>
+              <button type="button" class="topic-chip" data-topic="flight_controllers" role="radio" aria-checked="false">
+                Полётные контроллеры
+              </button>
+              <button type="button" class="topic-chip" data-topic="aerodynamics" role="radio" aria-checked="false">
+                Аэродинамика
+              </button>
             </div>
           </div>
 
@@ -95,14 +115,14 @@
               aria-labelledby="grade-label"
               id="grade-group"
             >
-              <button type="button" class="grade-chip" data-grade="junior" role="radio" aria-checked="false">
-                Junior
+              <button type="button" class="grade-chip" data-grade="easy" role="radio" aria-checked="false">
+                Лёгкий
               </button>
-              <button type="button" class="grade-chip" data-grade="middle" role="radio" aria-checked="true">
-                Middle
+              <button type="button" class="grade-chip" data-grade="medium" role="radio" aria-checked="true">
+                Средний
               </button>
-              <button type="button" class="grade-chip" data-grade="senior" role="radio" aria-checked="false">
-                Senior
+              <button type="button" class="grade-chip" data-grade="expert" role="radio" aria-checked="false">
+                Эксперт
               </button>
             </div>
           </div>
@@ -157,6 +177,6 @@
         <p id="hint" class="footer__hint"></p>
       </footer>
     </div>
-    <script type="module" src="app.js?v=13"></script>
+    <script type="module" src="app.js?v=17"></script>
   </body>
 </html>
