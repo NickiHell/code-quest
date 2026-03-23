@@ -66,13 +66,13 @@ async def _run_polling_loop(bot: Bot, dp: Dispatcher, settings: Settings) -> Non
 async def main() -> None:
     """Логирование, роутеры, бесконечный цикл с переподключением при сетевых сбоях."""
     settings = Settings()
-    configure_loguru(level=settings.log_level, app_env=settings.app_env)
-
-    logger.info(
-        "Mini App (WebView в Telegram): {} | Веб-панель: {}/admin/",
-        settings.webapp_url,
-        str(settings.public_base_url).rstrip("/"),
+    configure_loguru(
+        level=settings.log_level,
+        app_env=settings.app_env,
+        log_dir=settings.log_dir,
     )
+
+    logger.info("Mini App (WebView в Telegram): {}", settings.webapp_url)
 
     bot = Bot(
         token=settings.bot_token,

@@ -15,7 +15,7 @@ def test_brief_network() -> None:
 def test_brief_generic() -> None:
     msg = brief_user_message(RuntimeError("secret internal"))
     assert "secret" not in msg
-    assert "/menu" in msg
+    assert "/app" in msg
 
 
 def test_skip_not_modified() -> None:

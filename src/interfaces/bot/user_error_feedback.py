@@ -50,12 +50,12 @@ def brief_user_message(exc: BaseException) -> str:
     if isinstance(exc, TelegramServerError):
         return "Временная ошибка на стороне Telegram. Попробуйте через минуту."
     if isinstance(exc, TelegramBadRequest):
-        return "Запрос не выполнен. Попробуйте ещё раз или команду /menu."
+        return "Запрос не выполнен. Попробуйте ещё раз или команду /app."
     if isinstance(exc, (asyncio.TimeoutError, TimeoutError, ConnectionError, OSError)):
         return "Таймаут или обрыв сети. Попробуйте позже."
     if isinstance(exc, ValueError):
-        return "Некорректные данные. Попробуйте ещё раз или /menu."
-    return "Что-то пошло не так. Попробуйте команду /menu чуть позже."
+        return "Некорректные данные. Попробуйте ещё раз или /app."
+    return "Что-то пошло не так. Попробуйте команду /app чуть позже."
 
 
 async def notify_user_about_error(bot: Bot, update: Update, text: str) -> None:

@@ -15,4 +15,4 @@ router = Router(name="task")
 )
 async def fallback_private_hint(message: Message) -> None:
     """Подсказка только в личных сообщениях."""
-    await message.answer("Команды: /menu, /app, /help — или откройте Mini App кнопкой снизу.")
+    await message.answer("Команда /app — кнопки Mini App, или откройте приложение кнопкой снизу.")
