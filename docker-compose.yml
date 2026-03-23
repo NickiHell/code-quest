@@ -27,6 +27,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./static:/app/static
+      - ./logs:/app/logs
     networks:
       - codequest
 
@@ -36,6 +37,8 @@ services:
     env_file: .env
     environment:
       PYTHONPATH: /app
+    volumes:
+      - ./logs:/app/logs
     dns:
       - 8.8.8.8
       - 1.1.1.1

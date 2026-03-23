@@ -13,6 +13,9 @@ wheels/
 .env
 .env.local
 
+# Logs
+logs/
+
 # Neuro shit
 .history
 
