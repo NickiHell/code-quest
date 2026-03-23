@@ -418,6 +418,8 @@ const TOPIC_LABELS = {
   javascript: "JavaScript",
   algorithms: "Алгоритмы",
   data_structures: "Структуры данных",
+  engineering_management: "Управление командой разработки",
+  startup_capitalization: "Создание компании и капитализация",
   chess: "Шахматы",
   go: "Го",
   land_navigation: "Навигация на местности",
