@@ -34,3 +34,7 @@ class AbstractQuizAttemptRepository(ABC):
         feedback: str,
     ) -> int:
         """Создать запись попытки, вернуть id."""
+
+    @abstractmethod
+    async def count_attempts(self, *, user_id: int, question_id: int) -> int:
+        """Сколько попыток уже было у пользователя на этот вопрос (для анти-абьюза очков)."""

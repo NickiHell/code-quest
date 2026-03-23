@@ -21,7 +21,7 @@ class AbstractAIProvider(ABC):
         topic: str | None = None,
         seen_questions: list[str] | None = None,
     ) -> QuizQuestionData:
-        """Сгенерировать вопрос с ровно 10 вариантами и корректным индексом."""
+        """Сгенерировать вопрос с ровно 5 вариантами и корректным индексом."""
 
     @abstractmethod
     async def explain_quiz_choice(
@@ -34,6 +34,13 @@ class AbstractAIProvider(ABC):
         """Краткое объяснение для UX после выбора (правильно/неправильно)."""
 
 
+_GRADE_POINTS: dict[str, int] = {
+    "junior": 5,
+    "middle": 10,
+    "senior": 50,
+}
+
+
 class QuizEvaluator:
     """Чистая логика очков (без сети)."""
 
@@ -41,13 +48,11 @@ class QuizEvaluator:
     def evaluate(
         correct_index: int,
         chosen_index: int,
-        *,
-        points_correct: int = 10,
-        points_wrong: int = 0,
+        grade: str = "junior",
     ) -> QuizEvaluationResult:
         """Детерминированная оценка совпадения индексов."""
         is_correct = chosen_index == correct_index
-        score = points_correct if is_correct else points_wrong
+        score = _GRADE_POINTS.get(grade.lower(), 5) if is_correct else 0
         return QuizEvaluationResult(
             is_correct=is_correct,
             score=score,

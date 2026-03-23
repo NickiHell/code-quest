@@ -1,5 +1,5 @@
 /**
- * Code Quest Mini App — MCQ: грейд, 10 вариантов, ответ, лидерборд.
+ * Code Quest Mini App — MCQ: тема, грейд, варианты ответа, очки по сложности, лидерборд.
  */
 
 const tg = window.Telegram?.WebApp;
@@ -13,6 +13,20 @@ let _cachedUser = null;
 if (tg) {
   tg.ready();
   tg.expand();
+}
+
+/** Высота окна Mini App — без растягивания вручную контент подстраивается под viewport. */
+function syncTelegramViewport() {
+  if (!tg) return;
+  const h = tg.viewportStableHeight;
+  if (typeof h === "number" && h > 0) {
+    document.documentElement.style.setProperty("--tg-viewport-stable-height", `${h}px`);
+  }
+}
+syncTelegramViewport();
+requestAnimationFrame(syncTelegramViewport);
+if (tg && typeof tg.onEvent === "function") {
+  tg.onEvent("viewportChanged", syncTelegramViewport);
 }
 
 let currentQuestionId = null;
@@ -120,33 +134,56 @@ function parseUserFromInitData(raw) {
   }
 }
 
+/** Как в telegram-web-app.js: initParams из sessionStorage после первого захода с hash. */
+function readInitDataFromTelegramSessionStorage() {
+  try {
+    const raw = window.sessionStorage.getItem("__telegram__initParams");
+    if (!raw) return "";
+    const p = JSON.parse(raw);
+    const d = p?.tgWebAppData;
+    return typeof d === "string" && d.length > 0 ? d : "";
+  } catch {
+    return "";
+  }
+}
+
 /**
- * Иногда initData приходит в URL (query / hash), а не в WebApp.initData.
+ * Сырая строка initData: WebApp.initData, WebView.initParams, hash (#tgWebAppData=…), query.
+ * Раньше hash парсился только если в нём был «user=» — у Telegram обычно только tgWebAppData=…
  */
 function collectRawInitData() {
-  if (tg?.initData) return tg.initData;
+  if (tg?.initData && String(tg.initData).length > 0) {
+    return String(tg.initData);
+  }
+  try {
+    const wp = window.Telegram?.WebView?.initParams?.tgWebAppData;
+    if (wp && String(wp).length > 0) {
+      return String(wp);
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  const stored = readInitDataFromTelegramSessionStorage();
+  if (stored) return stored;
+
   try {
     const sp = window.location.search.slice(1);
-    if (sp && (sp.startsWith("query_id=") || sp.startsWith("user="))) {
-      return sp;
-    }
-    const q = new URLSearchParams(window.location.search);
-    const embedded = q.get("tgWebAppData");
-    if (embedded) {
-      return decodeURIComponent(embedded);
+    if (sp) {
+      const q = new URLSearchParams(sp);
+      const embedded = q.get("tgWebAppData");
+      if (embedded) return embedded;
+      if (sp.startsWith("query_id=") || sp.startsWith("user=")) return sp;
     }
   } catch (_) {
     /* ignore */
   }
   try {
-    const h = window.location.hash.slice(1);
+    const h = window.location.hash.replace(/^#/, "");
     if (!h) return "";
-    if (h.includes("user=") || h.includes("query_id=")) {
-      const q = new URLSearchParams(h);
-      const embedded = q.get("tgWebAppData");
-      if (embedded) return decodeURIComponent(embedded);
-      return h;
-    }
+    const q = new URLSearchParams(h);
+    const embedded = q.get("tgWebAppData");
+    if (embedded) return embedded;
+    if (h.startsWith("query_id=") || h.startsWith("user=")) return h;
   } catch (_) {
     /* ignore */
   }
@@ -157,19 +194,35 @@ function collectRawInitData() {
  * Разбирает initData один раз и кеширует результат в _cachedUser.
  * Повторные вызовы просто возвращают кеш — без URLSearchParams/JSON.parse.
  */
+function normalizeUnsafeUser(user) {
+  if (user == null) return null;
+  if (typeof user === "object" && user.id != null) return user;
+  if (typeof user === "string") {
+    try {
+      const o = JSON.parse(user);
+      return o?.id != null ? o : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 function getTelegramUser() {
   if (!tg) return null;
   if (_cachedUser) return _cachedUser;
 
-  const fromUnsafe = tg.initDataUnsafe?.user;
-  if (fromUnsafe?.id != null) {
+  const fromUnsafe = normalizeUnsafeUser(tg.initDataUnsafe?.user);
+  if (fromUnsafe) {
     _cachedUser = fromUnsafe;
     persistTelegramId(fromUnsafe.id);
     return _cachedUser;
   }
 
   const raw = collectRawInitData();
-  const parsed = parseUserFromInitData(raw) ?? parseUserFromInitData(tg.initData);
+  const parsed =
+    parseUserFromInitData(raw) ??
+    parseUserFromInitData(tg.initData ? String(tg.initData) : "");
   if (parsed?.id != null) {
     _cachedUser = parsed;
     persistTelegramId(parsed.id);
@@ -188,7 +241,7 @@ function getTelegramId() {
  * Ждём появления initData (Android / меню), но не дольше maxMs.
  * Используем _cachedUser — повторный парсинг исключён.
  */
-async function ensureTelegramUser(maxMs = 3500) {
+async function ensureTelegramUser(maxMs = 10000) {
   const step = 100;
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline) {
@@ -215,7 +268,7 @@ function getSelectedTopic() {
 function setupRadioGroup(groupId, chipSelector) {
   const group = document.getElementById(groupId);
   if (!group) return;
-  // Кешируем NodeList один раз — querySelectorAll при каждом клике не нужен
+  // Один querySelectorAll при инициализации; по клику O(n) по числу чипов в группе (n≈12) — дешево.
   const chips = Array.from(group.querySelectorAll(chipSelector));
   chips.forEach((chip) => {
     chip.addEventListener("click", () => {
@@ -253,7 +306,7 @@ function renderQuestion(data) {
     body.classList.remove("quiz-body--empty", "muted");
     body.innerHTML = `
       <div class="badge"><span class="dot"></span>${escapeHtml(data.grade)}</div>
-      <div class="task-title">Вопрос №${data.id}</div>
+      <div class="task-title">Вопрос №${data.question_number ?? data.id}</div>
       <div>${escapeHtml(data.question_text)}</div>
     `;
   }
@@ -278,7 +331,7 @@ function renderQuestion(data) {
       _optionBtns.push(btn);
       frag.appendChild(btn);
     });
-    opts.appendChild(frag); // единый reflow вместо 10 отдельных
+    opts.appendChild(frag); // единый reflow вместо отдельных вставок по кнопке
   }
 }
 
@@ -359,6 +412,11 @@ const TOPIC_LABELS = {
   javascript: "JavaScript",
   algorithms: "Алгоритмы",
   data_structures: "Структуры данных",
+  chess: "Шахматы",
+  go: "Го",
+  land_navigation: "Навигация на местности",
+  fishing: "Рыбалка",
+  car_repair: "Ремонт авто",
 };
 
 function showGenerating(topic, grade) {
@@ -391,14 +449,17 @@ async function loadNextQuestion() {
   const topic = getSelectedTopic();
   showGenerating(topic, grade);
   try {
-    const user = await ensureTelegramUser();
+    const user = await ensureTelegramUser(12000);
     const telegramId = user?.id ?? null;
     if (telegramId == null) {
       const body = document.getElementById("quiz-body");
       if (body) {
         body.classList.remove("quiz-body--empty");
         body.innerHTML =
-          '<span class="err">Не удалось получить ваш Telegram ID</span>. Откройте Mini App кнопкой «Открыть приложение» / Web App в чате с ботом.';
+          '<span class="err">Не удалось получить ваш Telegram ID</span>. ' +
+          "Закройте Mini App полностью и откройте снова кнопкой <b>Mini App</b> внизу чата или через /app. " +
+          "Не открывайте ссылку на квиз в обычном браузере. " +
+          "Если стоит ngrok: на странице предупреждения нажмите «Visit» один раз — без этого Telegram может не передать данные.";
       }
       return;
     }
@@ -470,10 +531,10 @@ async function main() {
   setupGradeChips();
   setupTopicChips();
 
-  /** На части Android initData появляется после первого кадра — ждём до 500 мс. */
+  /** На части клиентов initData дозаполняется после первого кадра. */
   let user = getTelegramUser();
   if (!user && tg) {
-    user = await ensureTelegramUser(500);
+    user = await ensureTelegramUser(2500);
   }
 
   const hint = document.getElementById("hint");
@@ -504,12 +565,17 @@ async function main() {
   const healthDot = document.getElementById("health-dot");
   try {
     const health = await fetchJson("/api/health");
+    const ok = health.status === "ok";
+    const pg = health.postgres === "ok";
+    const rd = health.redis === "ok";
     setText(
       "health-line",
-      `<span class="ok">OK</span> · v${escapeHtml(health.version)}`,
+      `${ok ? '<span class="ok">OK</span>' : '<span class="warn">Degraded</span>'} · v${escapeHtml(
+        health.version,
+      )} · PG ${pg ? "✓" : "✗"} · Redis ${rd ? "✓" : "✗"}`,
     );
-    healthDot?.classList.add("is-ok");
-    healthDot?.classList.remove("is-err");
+    healthDot?.classList.toggle("is-ok", ok);
+    healthDot?.classList.toggle("is-err", !ok);
   } catch (e) {
     setText("health-line", `<span class="err">Нет связи</span> · ${escapeHtml(friendlyError(e))}`);
     healthDot?.classList.add("is-err");

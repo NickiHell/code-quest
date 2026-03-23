@@ -62,9 +62,7 @@ class CreateSubmissionUseCase:
         if task is None:
             raise NotFoundError("Task not found")
 
-        user = await self._users.get_by_telegram_id(telegram_id)
-        if user is None:
-            user = await self._users.create(telegram_id, username)
+        user = await self._users.get_or_create_by_telegram_id(telegram_id, username)
 
         feedback = await self._ai.evaluate_code(code, task.description)
         points = _score_from_feedback(feedback)

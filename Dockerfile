@@ -14,7 +14,11 @@ COPY src/ ./src/
 COPY static/ ./static/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh \
+    && useradd -m -u 1000 appuser \
+    && chown -R appuser:appuser /app
+# Оставляем root для entrypoint: chown на смонтированный ./logs
 EXPOSE 8000
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["python", "-m", "uvicorn", "src.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,4 +1,4 @@
-"""Inline-клавиатуры: Mini App (внутри Telegram) и ссылка на веб-админку."""
+"""Inline-клавиатуры: только Mini App (внутри Telegram)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from src.core.config import Settings
 
 
 def group_menu_inline(settings: Settings, *, bot_username: str | None) -> InlineKeyboardMarkup:
-    """Меню для групп: Mini App + веб-панель.
+    """Меню для групп: одна кнопка Mini App.
 
     Кнопка ``web_app`` во встроенной клавиатуре в группах запрещена Bot API
     (``BUTTON_TYPE_INVALID``). Вместо прямого ``https`` на страницу (открывает
@@ -17,7 +17,6 @@ def group_menu_inline(settings: Settings, *, bot_username: str | None) -> Inline
 
     Если у бота нет ``@username`` (редко), fallback на ``webapp_url`` (снова браузер).
     """
-    base = str(settings.public_base_url).rstrip("/")
     webapp_url = str(settings.webapp_url)
     if bot_username:
         uname = bot_username.lstrip("@")
@@ -32,19 +31,12 @@ def group_menu_inline(settings: Settings, *, bot_username: str | None) -> Inline
                     url=mini_open_url,
                 ),
             ],
-            [
-                InlineKeyboardButton(
-                    text="Веб: статистика и управление",
-                    url=f"{base}/admin/",
-                ),
-            ],
         ],
     )
 
 
 def private_menu_inline(settings: Settings) -> InlineKeyboardMarkup:
-    """Дублирует ссылки для лички (в дополнение к reply-клавиатуре)."""
-    base = str(settings.public_base_url).rstrip("/")
+    """Дублирует кнопку Mini App для лички (в дополнение к reply-клавиатуре)."""
     webapp_url = str(settings.webapp_url)
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -52,12 +44,6 @@ def private_menu_inline(settings: Settings) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(
                     text="Code Quest — Mini App",
                     web_app=WebAppInfo(url=webapp_url),
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text="Веб: статистика и управление",
-                    url=f"{base}/admin/",
                 ),
             ],
         ],

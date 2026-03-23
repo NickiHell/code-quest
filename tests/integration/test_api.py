@@ -30,6 +30,8 @@ async def test_health_endpoint() -> None:
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["version"] == "0.1.0"
+    assert payload["postgres"] == "ok"
+    assert payload["redis"] == "ok"
 
 
 @pytest.mark.asyncio

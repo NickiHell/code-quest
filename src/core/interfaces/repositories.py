@@ -18,12 +18,24 @@ class AbstractUserRepository(ABC):
         """Return a user by primary key."""
 
     @abstractmethod
+    async def get_by_ids(self, user_ids: list[int]) -> dict[int, User]:
+        """Загрузить пользователей по списку id; вернуть словарь id -> User."""
+
+    @abstractmethod
     async def get_by_telegram_id(self, telegram_id: int) -> User | None:
         """Return a user by Telegram id."""
 
     @abstractmethod
     async def create(self, telegram_id: int, username: str | None) -> User:
         """Persist a new user."""
+
+    @abstractmethod
+    async def get_or_create_by_telegram_id(
+        self,
+        telegram_id: int,
+        username: str | None,
+    ) -> User:
+        """Вернуть пользователя; при отсутствии — создать. Без гонки при параллельных запросах."""
 
     @abstractmethod
     async def update(self, user: User) -> User:

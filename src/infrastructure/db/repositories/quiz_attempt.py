@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.interfaces.quiz_repositories import AbstractQuizAttemptRepository
@@ -40,3 +41,11 @@ class SQLAlchemyQuizAttemptRepository(AbstractQuizAttemptRepository):
         await self._session.flush()
         await self._session.refresh(model)
         return int(model.id)
+
+    async def count_attempts(self, *, user_id: int, question_id: int) -> int:
+        stmt = select(func.count()).where(
+            QuizAttemptModel.user_id == user_id,
+            QuizAttemptModel.question_id == question_id,
+        )
+        result = await self._session.execute(stmt)
+        return int(result.scalar_one() or 0)

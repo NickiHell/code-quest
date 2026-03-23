@@ -30,7 +30,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        configure_loguru(level=settings.log_level, app_env=settings.app_env)
+        configure_loguru(
+            level=settings.log_level,
+            app_env=settings.app_env,
+            log_dir=settings.log_dir,
+        )
         engine = create_engine(settings)
         session_factory = create_session_factory(engine)
         redis = create_redis_client(str(settings.redis_url))

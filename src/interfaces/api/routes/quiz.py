@@ -55,6 +55,7 @@ async def next_question(
 
     return QuizQuestionResponse(
         id=q.id,
+        question_number=q.question_number,
         question_text=q.question_text,
         options=list(q.options),
         grade=q.grade,

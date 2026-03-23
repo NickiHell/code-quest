@@ -44,8 +44,7 @@ async def test_create_submission_persists_and_updates_leaderboard() -> None:
     tasks.get_by_id = AsyncMock(return_value=task)
 
     users = AsyncMock(spec=AbstractUserRepository)
-    users.get_by_telegram_id = AsyncMock(return_value=None)
-    users.create = AsyncMock(
+    users.get_or_create_by_telegram_id = AsyncMock(
         return_value=User(
             id=1,
             telegram_id=42,

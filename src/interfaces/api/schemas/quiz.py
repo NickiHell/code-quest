@@ -28,6 +28,11 @@ class QuizQuestionResponse(BaseModel):
     """Вопрос без правильного индекса."""
 
     id: int
+    question_number: int = Field(
+        ...,
+        ge=1,
+        description="Персональный порядковый номер для пользователя",
+    )
     question_text: str
     options: list[str]
     grade: str
@@ -38,7 +43,7 @@ class SubmitQuizRequest(BaseModel):
 
     telegram_id: int = Field(..., ge=1)
     question_id: int = Field(..., ge=1)
-    chosen_index: int = Field(..., ge=0, le=9)
+    chosen_index: int = Field(..., ge=0, le=4)
 
 
 class QuizResultResponse(BaseModel):

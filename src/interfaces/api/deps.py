@@ -115,7 +115,7 @@ async def get_next_quiz_use_case(
     users: AbstractUserRepository = Depends(get_user_repository),
     questions: AbstractQuizQuestionRepository = Depends(get_quiz_question_repository),
     ai: AbstractAIProvider = Depends(get_ai_service),
-    redis: Redis = Depends(get_redis),
+    redis: Redis = Depends(get_redis),  # type: ignore[type-arg]
 ) -> NextQuizUseCase:
     """Сгенерировать следующий вопрос."""
     return NextQuizUseCase(users=users, questions=questions, ai=ai, redis=redis)

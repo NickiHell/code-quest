@@ -18,21 +18,22 @@ async def handle_start_private(message: Message) -> None:
     """Приветствие в личке: reply-клавиатура с Web App."""
     settings = Settings()
     await message.answer(
-        "Добро пожаловать в <b>Code Quest</b> — ежедневные задачи по программированию.\n\n"
-        "Нажмите <b>«Открыть Code Quest»</b> внизу — приложение откроется <b>внутри Telegram</b>.\n"
-        "Статистика и админка — в <b>веб-панели</b> (команда /menu).",
+        "Добро пожаловать в <b>Code Quest</b> — квиз по коду, шахматам, го и не только.\n\n"
+        "Нажмите кнопку <b>Mini App: Code Quest</b> внизу — приложение откроется "
+        "<b>внутри Telegram</b>.\n"
+        "Тему, сложность и лидерборд смотрите в приложении. Команда /app — кнопки Mini App.",
         reply_markup=main_menu_keyboard(settings),
     )
 
 
 @router.message(CommandStart(), F.chat.type.in_({"group", "supergroup"}))
 async def handle_start_group(message: Message, bot: Bot) -> None:
-    """Кратко в группе + inline (Mini App и веб)."""
+    """Кратко в группе + inline (Mini App)."""
     settings = Settings()
     me = await bot.me()
     await message.reply(
         "Code Quest в этой группе.\n"
-        "Используйте /menu — кнопка <b>Mini App</b> открывает квиз "
-        "<b>внутри Telegram</b> (t.me), веб-панель — в браузере.",
+        "Используйте /app — кнопка <b>Mini App</b> открывает квиз "
+        "<b>внутри Telegram</b> (t.me).",
         reply_markup=group_menu_inline(settings, bot_username=me.username),
     )

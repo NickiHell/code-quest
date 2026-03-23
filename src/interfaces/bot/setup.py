@@ -24,10 +24,7 @@ async def setup_bot_profile(bot: Bot, settings: Settings) -> None:
     try:
         await bot.set_my_commands(
             [
-                BotCommand(command="start", description="Начать"),
-                BotCommand(command="menu", description="Меню: Mini App и веб"),
-                BotCommand(command="app", description="Открыть Code Quest"),
-                BotCommand(command="help", description="Помощь"),
+                BotCommand(command="app", description="Открыть Code Quest (квиз)"),
             ],
             scope=BotCommandScopeDefault(),
         )
@@ -40,9 +37,7 @@ async def setup_bot_profile(bot: Bot, settings: Settings) -> None:
     try:
         await bot.set_my_commands(
             [
-                BotCommand(command="menu", description="Меню: Mini App и веб"),
-                BotCommand(command="app", description="Открыть Code Quest"),
-                BotCommand(command="help", description="Помощь"),
+                BotCommand(command="app", description="Открыть Code Quest (квиз)"),
             ],
             scope=BotCommandScopeAllGroupChats(),
         )

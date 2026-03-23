@@ -34,9 +34,11 @@ class LeaderboardViewUseCase:
     async def execute(self, *, limit: int = 10) -> list[LeaderboardRow]:
         """Вернуть топ с именами (если пользователь найден)."""
         raw = await self._leaderboard.top(limit=limit)
+        uids = [uid for uid, _ in raw]
+        users_map = await self._users.get_by_ids(uids)
         rows: list[LeaderboardRow] = []
         for rank, (uid, score) in enumerate(raw, start=1):
-            user = await self._users.get_by_id(uid)
+            user = users_map.get(uid)
             rows.append(
                 LeaderboardRow(
                     rank=rank,
