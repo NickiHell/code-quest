@@ -9,12 +9,12 @@ from src.infrastructure.ai.prompts import parse_quiz_json
 
 def test_parse_quiz_json_valid() -> None:
     raw = (
-        '{"question_text": "Q?", "options": ["a","b","c","d","e","f","g","h","i","j"], '
+        '{"question_text": "Q?", "options": ["a","b","c","d","e"], '
         '"correct_index": 2, "grade": "junior"}'
     )
     q = parse_quiz_json(raw, default_grade="middle")
     assert q.question_text == "Q?"
-    assert len(q.options) == 10
+    assert len(q.options) == 5
     assert q.correct_index == 2
     assert q.grade == "junior"
 
@@ -22,3 +22,9 @@ def test_parse_quiz_json_valid() -> None:
 def test_parse_quiz_json_invalid() -> None:
     with pytest.raises(ValueError, match="Invalid"):
         parse_quiz_json("not json", default_grade="junior")
+
+
+def test_parse_quiz_json_requires_five_options() -> None:
+    raw = '{"question_text": "Q?", "options": ["a","b"], "correct_index": 0, "grade": "junior"}'
+    with pytest.raises(ValueError, match="Invalid"):
+        parse_quiz_json(raw, default_grade="junior")
