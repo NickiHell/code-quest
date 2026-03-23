@@ -9,6 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Node (ESLint)
+node_modules/
+
 # Secrets
 .env
 .env.local

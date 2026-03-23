@@ -1,16 +1,17 @@
-"""Общие промпты и разбор JSON квиза для Ollama и Yandex."""
+"""Промпты и разбор JSON квиза."""
 
 from __future__ import annotations
 
 import json
 import logging
 import random
-from typing import Any
+from typing import Any, Final
 
-from src.entities.quiz import QuizQuestionData
+from src.entities.quiz import MCQ_OPTION_COUNT, QuizQuestionData
 from src.infrastructure.ai.json_extract import extract_json_object
 
 logger = logging.getLogger(__name__)
+_JSON_LOG_PREVIEW_LEN: Final[int] = 400
 
 
 def build_evaluate_code_prompt(code: str, task_description: str) -> str:
@@ -272,7 +273,7 @@ def parse_quiz_json(raw: str, *, default_grade: str) -> QuizQuestionData:
     try:
         data = extract_json_object(raw)
     except (json.JSONDecodeError, TypeError, ValueError) as exc:
-        preview = raw[:400] + ("…" if len(raw) > 400 else "")
+        preview = raw[:_JSON_LOG_PREVIEW_LEN] + ("…" if len(raw) > _JSON_LOG_PREVIEW_LEN else "")
         logger.warning("Failed to parse quiz JSON (%s): %s", exc, preview)
         msg = "Invalid JSON from model"
         raise ValueError(msg) from exc
@@ -287,7 +288,7 @@ def quiz_data_from_dict(data: dict[str, Any], *, default_grade: str) -> QuizQues
     ci = data.get("correct_index")
     g = str(data.get("grade", default_grade)).strip()
 
-    if not q or not isinstance(opts, list) or len(opts) != 5:
+    if not q or not isinstance(opts, list) or len(opts) != MCQ_OPTION_COUNT:
         msg = "Invalid question shape from model"
         raise ValueError(msg)
     options_norm = tuple(str(x).strip() for x in opts)

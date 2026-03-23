@@ -12,16 +12,10 @@ class DomainError(Exception):
 class NotFoundError(DomainError):
     """Raised when an aggregate or entity cannot be located."""
 
-    pass
-
 
 class DomainValidationError(DomainError):
     """Raised when input violates domain constraints."""
 
-    pass
-
 
 class ExternalServiceError(DomainError):
     """Raised when an outbound dependency (AI, sandbox) fails."""
-
-    pass

@@ -18,7 +18,7 @@ from src.infrastructure.ai.prompts import (
 
 
 class YandexGPTAIService(AbstractAIProvider):
-    """Те же промпты, что у Ollama; вызов через AsyncAIStudio.models.completions."""
+    """YandexGPT через AsyncAIStudio.models.completions."""
 
     def __init__(self, *, model: Any, timeout: int) -> None:
         self._model = model

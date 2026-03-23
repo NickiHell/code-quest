@@ -15,7 +15,6 @@ def test_public_base_url_strips_path_to_origin() -> None:
             "webapp_url": "https://example.com/miniapp/",
             "public_base_url": "https://example.com/miniapp/",
             "admin_api_key": "test-admin-key-for-ci-16",
-            "ollama_base_url": "http://localhost:11434",
         },
     )
     assert str(s.public_base_url).rstrip("/") == "https://example.com"

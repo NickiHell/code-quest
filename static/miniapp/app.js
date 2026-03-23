@@ -110,7 +110,7 @@ function escapeHtml(s) {
 function friendlyError(err) {
   const msg = String(err);
   if (err?.name === "AbortError" || msg.includes("aborted")) {
-    return "Долгий ответ сервера (таймаут). Подождите или проверьте Ollama на машине.";
+    return "Долгий ответ сервера (таймаут). Подождите или проверьте доступность Yandex Cloud API.";
   }
   if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
     return "Нет связи с сервером. Проверьте интернет и попробуйте снова.";

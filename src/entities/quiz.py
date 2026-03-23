@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Final
+
+MCQ_OPTION_COUNT: Final[int] = 5
 
 
 @dataclass(frozen=True)
@@ -16,8 +19,8 @@ class QuizQuestionData:
     grade: str
 
     def __post_init__(self) -> None:
-        if len(self.options) != 5:
-            msg = "Quiz must have exactly 5 options"
+        if len(self.options) != MCQ_OPTION_COUNT:
+            msg = f"Quiz must have exactly {MCQ_OPTION_COUNT} options"
             raise ValueError(msg)
         if not (0 <= self.correct_index < len(self.options)):
             msg = "correct_index out of range"

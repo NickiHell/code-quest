@@ -1,4 +1,4 @@
-"""Выбор активного AI-бэкенда: env по умолчанию + опциональное переопределение в Redis."""
+"""Делегирование в зарегистрированный Yandex-бэкенд; override в Redis."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ REDIS_KEY_AI_BACKEND_OVERRIDE = "codequest:ai_backend_override"
 
 
 class RoutingAIProvider(AbstractAIProvider):
-    """Делегирует вызовы одному из зарегистрированных провайдеров по effective backend."""
+    """Выбор бэкенда: Redis override или AI_BACKEND из env."""
 
     def __init__(
         self,
@@ -26,7 +26,7 @@ class RoutingAIProvider(AbstractAIProvider):
         providers: dict[AiBackend, AbstractAIProvider],
     ) -> None:
         if not providers:
-            msg = "Нет доступных AI-провайдеров — проверьте .env (Ollama, Yandex и т.д.)."
+            msg = "Нет доступных AI-провайдеров — задайте YANDEX_FOLDER_ID и YANDEX_AUTH в .env."
             raise ValueError(msg)
         self._settings = settings
         self._redis = redis

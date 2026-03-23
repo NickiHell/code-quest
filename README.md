@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
-Telegram-бот и **Mini App** с MCQ-квизом (обычно **5 вариантов** ответа на вопрос), общим **лидербордом** в Redis, API на **FastAPI** и подключаемыми **AI-бэкендами** (Ollama, Yandex и др.). Веб-админка для статистики.
+Telegram-бот и **Mini App** с MCQ-квизом (обычно **5 вариантов** ответа на вопрос), общим **лидербордом** в Redis, API на **FastAPI** и генерацией текста через **Yandex Cloud** (YandexGPT, AI Studio, Responses API). Веб-админка для статистики.
 
 **Архитектура:** слой **use cases** отделяет сценарии (квиз, сабмиты кода) от **инфраструктуры** (SQLAlchemy, Redis, HTTP-клиенты к LLM). Контракты в `core/interfaces/`; FastAPI собирает зависимости в `deps.py`. Для портфолио: один репозиторий — бот, Mini App, REST и админка с переключением бэкенда ИИ без перезапуска.
 
@@ -21,7 +21,7 @@ Python 3.11+, FastAPI, SQLAlchemy (async) + PostgreSQL, Redis, Aiogram 3, Alembi
 
 ## Режимы ИИ и админка
 
-В [.env.example](.env.example) перечислены переменные для **Ollama**, **YandexGPT**, **ассистента AI Studio** и **Yandex OpenAI-compatible Responses**. Можно задать креды сразу для нескольких бэкендов: поднимутся все, для которых хватает переменных.
+В [.env.example](.env.example) — переменные **Yandex Cloud** (folder, ключ, модель). В рантайме можно переключать режим (`yandex_openai_responses`, `yandex_gpt`, `yandex_ai_studio_agent`) через админку или Redis, если для режима заданы креды.
 
 - Значение по умолчанию: `AI_BACKEND`.
 - Переключение **без перезапуска**: веб-админка `/admin/` (раздел «Режим ИИ») или
@@ -69,17 +69,19 @@ Telegram принимает только **HTTPS** для Web App. Для тес
 
 ```bash
 uv sync --group dev
+npm ci
+npm run lint
 uv run pre-commit install
 uv run ruff check .
 uv run mypy src
 uv run pytest
 ```
 
-**Pre-commit** (после `pre-commit install`): перед коммитом запускаются проверки из [`.pre-commit-config.yaml`](.pre-commit-config.yaml) — правки YAML/TOML, trailing whitespace, `ruff check` и `ruff format`.
+**Pre-commit** (после `pre-commit install`): перед коммитом запускаются проверки из [`.pre-commit-config.yaml`](.pre-commit-config.yaml) — правки YAML/TOML, trailing whitespace, ESLint для `static/**/*.js` (сложность, вложенность, `eqeqeq`, без `var`), `ruff check` с расширенным набором правил (см. `[tool.ruff.lint]` в `pyproject.toml`) и `ruff format`.
 **Conventional Commits:** хук `commit-msg` проверяет заголовок сообщения (например `feat(scope): описание`). Удобно оформлять коммиты через [Commitizen](https://commitizen-tools.github.io/commitizen/): `uv run cz commit`.
 
 Подробности переменных окружения — в [.env.example](.env.example).
 
 ## CI
 
-Автоматические проверки: pre-commit (в т.ч. Ruff), Mypy, Pytest. Статус и логи: [GitHub Actions](https://github.com/NickiHell/code-quest/actions).
+Автоматические проверки: pre-commit (ESLint, Ruff), Mypy, Pytest. Статус и логи: [GitHub Actions](https://github.com/NickiHell/code-quest/actions).

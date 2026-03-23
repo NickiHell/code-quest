@@ -16,7 +16,7 @@ from src.infrastructure.ai.prompts import (
 
 
 class YandexAIStudioAgentService(AbstractAIProvider):
-    """Промпты как у Ollama; исполнение через опубликованного ассистента."""
+    """Ассистент AI Studio (thread/run)."""
 
     def __init__(self, *, sdk: AsyncAIStudio, assistant_id: str, timeout: int) -> None:
         self._sdk = sdk

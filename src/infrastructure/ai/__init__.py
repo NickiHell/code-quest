@@ -1,1 +1,1 @@
-"""AI providers (Ollama)."""
+"""Реализации LLM для Yandex Cloud."""

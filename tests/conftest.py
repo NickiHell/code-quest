@@ -31,7 +31,6 @@ os.environ.setdefault("BOT_TOKEN", "1234567890:ABCDEF-test-token")
 os.environ.setdefault("WEBAPP_URL", "https://example.com/miniapp/")
 os.environ.setdefault("PUBLIC_BASE_URL", "https://example.com")
 os.environ.setdefault("ADMIN_API_KEY", "test-admin-key-for-ci-16")
-os.environ.setdefault("OLLAMA_BASE_URL", "http://localhost:11434")
 os.environ.setdefault("LOG_DIR", "")
 
 
