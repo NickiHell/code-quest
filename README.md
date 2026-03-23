@@ -4,7 +4,9 @@
 [![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
-Telegram-бот и **Mini App** с MCQ-квизом (10 вариантов ответа), общим **лидербордом** в Redis, API на **FastAPI** и подключаемыми **AI-бэкендами** (Ollama, Yandex и др.). Веб-админка для статистики.
+Telegram-бот и **Mini App** с MCQ-квизом (обычно **5 вариантов** ответа на вопрос), общим **лидербордом** в Redis, API на **FastAPI** и подключаемыми **AI-бэкендами** (Ollama, Yandex и др.). Веб-админка для статистики.
+
+**Архитектура:** слой **use cases** отделяет сценарии (квиз, сабмиты кода) от **инфраструктуры** (SQLAlchemy, Redis, HTTP-клиенты к LLM). Контракты в `core/interfaces/`; FastAPI собирает зависимости в `deps.py`. Для портфолио: один репозиторий — бот, Mini App, REST и админка с переключением бэкенда ИИ без перезапуска.
 
 ## Возможности
 
