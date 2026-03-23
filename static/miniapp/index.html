@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#0c1222" />
+    <meta name="theme-color" content="#ffffff" />
     <base href="/miniapp/" />
     <title>Code Quest</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,18 +16,18 @@
       rel="stylesheet"
     />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="styles.css?v=6" />
+    <link rel="stylesheet" href="styles.css?v=12" />
   </head>
   <body>
     <a class="skip-link" href="#quiz-card">К квизу</a>
     <div class="app">
       <header class="hero" aria-labelledby="app-title">
-        <div class="hero-glow" aria-hidden="true"></div>
-        <p class="eyebrow">Квиз по коду</p>
+        <p class="eyebrow">Квиз</p>
         <h1 id="app-title">Code Quest</h1>
         <p class="lede">
-          Квиз по <strong>Python</strong>, алгоритмам и структурам данных — выберите тему и грейд,
-          нажмите «Новый вопрос» и ответьте на MCQ из <strong>10 вариантов</strong>.
+          Код, логика, <strong>шахматы</strong>, <strong>го</strong>, навигация, рыбалка, авто — выберите тему и сложность,
+          ответьте на вопрос (обычно <strong>5 вариантов</strong>). Очки: <strong>+5</strong> / <strong>+10</strong> /
+          <strong>+50</strong> по грейду.
         </p>
       </header>
 
@@ -46,7 +46,7 @@
         <section class="card card--elevated" id="quiz-card" aria-labelledby="quiz-heading">
           <div class="card__head">
             <h2 id="quiz-heading">Квиз</h2>
-            <p class="card__sub">Один вопрос — десять вариантов ответа</p>
+            <p class="card__sub">Один вопрос — несколько вариантов ответа</p>
           </div>
 
           <div class="field">
@@ -68,6 +68,21 @@
               </button>
               <button type="button" class="topic-chip" data-topic="data_structures" role="radio" aria-checked="false">
                 Структуры данных
+              </button>
+              <button type="button" class="topic-chip" data-topic="chess" role="radio" aria-checked="false">
+                Шахматы
+              </button>
+              <button type="button" class="topic-chip" data-topic="go" role="radio" aria-checked="false">
+                Го
+              </button>
+              <button type="button" class="topic-chip" data-topic="land_navigation" role="radio" aria-checked="false">
+                Навигация
+              </button>
+              <button type="button" class="topic-chip" data-topic="fishing" role="radio" aria-checked="false">
+                Рыбалка
+              </button>
+              <button type="button" class="topic-chip" data-topic="car_repair" role="radio" aria-checked="false">
+                Авто
               </button>
             </div>
           </div>
@@ -142,6 +157,6 @@
         <p id="hint" class="footer__hint"></p>
       </footer>
     </div>
-    <script type="module" src="app.js?v=6"></script>
+    <script type="module" src="app.js?v=12"></script>
   </body>
 </html>

@@ -32,6 +32,7 @@ os.environ.setdefault("WEBAPP_URL", "https://example.com/miniapp/")
 os.environ.setdefault("PUBLIC_BASE_URL", "https://example.com")
 os.environ.setdefault("ADMIN_API_KEY", "test-admin-key-for-ci-16")
 os.environ.setdefault("OLLAMA_BASE_URL", "http://localhost:11434")
+os.environ.setdefault("LOG_DIR", "")
 
 
 @pytest.fixture
@@ -60,7 +61,7 @@ def mock_ai_service() -> AbstractAIProvider:
     mock.generate_quiz_question = AsyncMock(
         return_value=QuizQuestionData(
             question_text="Тестовый вопрос?",
-            options=tuple(f"Вариант {i}" for i in range(10)),
+            options=tuple(f"Вариант {i}" for i in range(5)),
             correct_index=0,
             grade="junior",
         ),

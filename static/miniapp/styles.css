@@ -1,23 +1,23 @@
-/* Code Quest Mini App — light theme, Telegram theme + safe areas */
+/* Code Quest Mini App — светлая «белая» тема, Telegram theme через JS */
 
 :root {
   color-scheme: light;
   --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --bg: #f0f4fa;
+  --bg: #ffffff;
   --bg-elevated: #ffffff;
-  --surface: #f8fafc;
+  --surface: #fafafa;
 
-  --border: rgba(15, 23, 42, 0.1);
-  --border-strong: rgba(15, 23, 42, 0.2);
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
 
-  --text: #0f172a;
-  --muted: #64748b;
+  --text: #111827;
+  --muted: #6b7280;
 
-  --accent: #0ea5e9;
-  --accent-2: #7c3aed;
-  --accent-soft: rgba(14, 165, 233, 0.1);
-  --accent-2-soft: rgba(124, 58, 237, 0.1);
+  --accent: #0284c7;
+  --accent-2: #4f46e5;
+  --accent-soft: rgba(2, 132, 199, 0.08);
+  --accent-2-soft: rgba(79, 70, 229, 0.08);
 
   --success: #059669;
   --success-soft: rgba(5, 150, 105, 0.1);
@@ -26,12 +26,14 @@
   --error: #dc2626;
   --error-soft: rgba(220, 38, 38, 0.08);
 
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --shadow: 0 1px 4px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.06);
-  --shadow-lg: 0 2px 8px rgba(15, 23, 42, 0.08), 0 8px 32px rgba(15, 23, 42, 0.1);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 1px 3px rgba(15, 23, 42, 0.06);
   --tap-size: min(48px, 12mm);
+  /* Подставляется из Telegram WebApp (app.js), иначе fallback на dvh */
+  --tg-viewport-stable-height: 100dvh;
   font-family: var(--font);
   font-feature-settings: "kern" 1, "liga" 1;
 }
@@ -50,14 +52,22 @@
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100%;
   min-height: 100dvh;
+  min-height: var(--tg-viewport-stable-height, 100dvh);
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 .skip-link {
@@ -77,22 +87,26 @@ body {
 }
 
 .app {
-  max-width: 560px;
+  width: 100%;
+  max-width: min(720px, 100%);
   margin: 0 auto;
   padding:
-    calc(12px + env(safe-area-inset-top, 0px)) 16px
-    calc(28px + env(safe-area-inset-bottom, 0px));
+    calc(clamp(8px, 2.2vw, 14px) + env(safe-area-inset-top, 0px))
+    clamp(12px, 4vw, 20px)
+    calc(clamp(20px, 5vw, 32px) + env(safe-area-inset-bottom, 0px));
+  min-height: var(--tg-viewport-stable-height, 100dvh);
+  box-sizing: border-box;
 }
 
 /* Hero */
 .hero {
   position: relative;
   margin-bottom: 20px;
-  padding-bottom: 4px;
-}
-
-.hero-glow {
-  display: none; /* убираем бесконечную анимацию — не нужна на светлой теме */
+  padding: 0 0 4px;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .eyebrow {
@@ -155,7 +169,7 @@ h1 {
   border-radius: var(--radius-md);
   font-size: 13px;
   line-height: 1.4;
-  box-shadow: var(--shadow);
+  box-shadow: none;
 }
 
 .status-bar__icon {
@@ -197,12 +211,14 @@ h1 {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 18px 16px 16px;
+  padding: clamp(14px, 3.2vw, 18px) clamp(12px, 3vw, 16px);
   box-shadow: var(--shadow-lg);
+  min-width: 0;
 }
 
 .card--elevated {
-  border-color: var(--border-strong);
+  border-color: var(--border);
+  background: var(--bg-elevated);
 }
 
 .card__head {
@@ -236,31 +252,26 @@ h1 {
   line-height: 1.45;
 }
 
-/* Topic chips */
+/* Topic chips — auto-fill: без JS, O(1) раскладка в браузере */
 .topic-seg {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-@media (max-width: 340px) {
-  .topic-seg {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 92px), 1fr));
+  gap: clamp(6px, 1.8vw, 10px);
 }
 
 .topic-chip {
   appearance: none;
   margin: 0;
-  padding: 10px 8px;
+  padding: clamp(8px, 2vw, 10px) clamp(6px, 1.5vw, 8px);
   min-height: var(--tap-size);
   border-radius: var(--radius-md);
-  border: 1.5px solid var(--border);
-  background: var(--surface);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
   color: var(--muted);
   font-family: inherit;
-  font-size: 13px;
+  font-size: clamp(11px, 2.8vw, 12px);
   font-weight: 600;
+  line-height: 1.25;
   cursor: pointer;
   transition:
     border-color 0.15s ease,
@@ -392,7 +403,7 @@ h1 {
   background: var(--accent);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+  box-shadow: none;
 }
 
 .btn--primary:hover:not(:disabled) {
@@ -453,9 +464,11 @@ h1 {
   border-radius: var(--radius-md);
   border: 1.5px dashed var(--border);
   background: var(--surface);
-  font-size: 15px;
+  font-size: clamp(14px, 3.6vw, 15px);
   line-height: 1.55;
   transition: border-color 0.2s ease;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .quiz-body:not(.quiz-body--empty) {
@@ -505,9 +518,22 @@ h1 {
   margin-top: 14px;
 }
 
-@media (min-width: 440px) {
+/* Две колонки вариантов только при достаточной ширине — иначе без горизонтального скролла */
+@media (min-width: 520px) {
   .options-grid {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 400px) {
+  .card__head--row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card__head--row .btn--ghost {
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -515,16 +541,18 @@ h1 {
   display: flex;
   align-items: flex-start;
   text-align: left;
-  padding: 14px;
+  padding: clamp(12px, 3vw, 14px);
   min-height: 52px;
   border-radius: var(--radius-md);
   border: 1.5px solid var(--border);
   background: var(--bg-elevated);
   color: var(--text);
   font-family: inherit;
-  font-size: 14px;
+  font-size: clamp(13px, 3.4vw, 14px);
   line-height: 1.45;
   cursor: pointer;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   transition:
     border-color 0.15s ease,
     background 0.15s ease;

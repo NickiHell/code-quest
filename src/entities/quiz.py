@@ -16,8 +16,8 @@ class QuizQuestionData:
     grade: str
 
     def __post_init__(self) -> None:
-        if not (2 <= len(self.options) <= 8):
-            msg = "Quiz must have between 2 and 8 options"
+        if len(self.options) != 5:
+            msg = "Quiz must have exactly 5 options"
             raise ValueError(msg)
         if not (0 <= self.correct_index < len(self.options)):
             msg = "correct_index out of range"
@@ -38,6 +38,7 @@ class QuizQuestionPublic:
     """Вопрос для клиента (без правильного индекса)."""
 
     id: int
+    question_number: int
     question_text: str
     options: tuple[str, ...]
     grade: str
