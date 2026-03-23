@@ -356,6 +356,7 @@ async function submitAnswer(chosenIndex) {
 
 const TOPIC_LABELS = {
   python: "Python",
+  javascript: "JavaScript",
   algorithms: "Алгоритмы",
   data_structures: "Структуры данных",
 };

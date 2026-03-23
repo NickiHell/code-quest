@@ -45,8 +45,11 @@ class Settings(BaseSettings):
     )
 
     ai_backend: AiBackend = Field(
-        default=AiBackend.ollama,
-        description="ollama | yandex_gpt | yandex_ai_studio_agent | yandex_openai_responses",
+        default=AiBackend.yandex_openai_responses,
+        description=(
+            "ollama | yandex_gpt | yandex_ai_studio_agent | "
+            "yandex_openai_responses | openai_compatible"
+        ),
     )
 
     ollama_base_url: AnyUrl | None = Field(
@@ -89,6 +92,31 @@ class Settings(BaseSettings):
         ge=1,
         le=32000,
         description="Лимит вывода для responses.create (MCQ JSON нужен запас).",
+    )
+
+    # --- Generic OpenAI-compatible provider (OpenAI, Groq, Together AI, Mistral, Deepseek…) ---
+    openai_compat_base_url: str | None = Field(
+        default=None,
+        description=(
+            "Base URL провайдера. Пусто = https://api.openai.com/v1. "
+            "Groq: https://api.groq.com/openai/v1 | Together: https://api.together.xyz/v1 | "
+            "Mistral: https://api.mistral.ai/v1 | Deepseek: https://api.deepseek.com"
+        ),
+    )
+    openai_compat_api_key: str | None = Field(
+        default=None,
+        description="API-ключ провайдера (обязателен при AI_BACKEND=openai_compatible).",
+    )
+    openai_compat_model: str = Field(
+        default="gpt-4o-mini",
+        description="Имя модели: gpt-4o-mini, llama-3.3-70b-versatile (Groq), mistral-small…",
+    )
+    openai_compat_temperature: float = Field(default=0.3, ge=0.0, le=2.0)
+    openai_compat_max_tokens: int = Field(
+        default=4096,
+        ge=1,
+        le=32000,
+        description="Лимит токенов ответа для chat.completions.",
     )
 
     sandbox_timeout: int = Field(default=5, ge=1, le=300)
@@ -177,5 +205,9 @@ class Settings(BaseSettings):
                     "YANDEX_FOLDER_ID (или YANDEX_CLOUD_FOLDER) и YANDEX_AUTH "
                     "(или YANDEX_CLOUD_API_KEY) нужны при AI_BACKEND=yandex_openai_responses"
                 )
+                raise ValueError(msg)
+        elif self.ai_backend == AiBackend.openai_compatible:
+            if not self.openai_compat_api_key:
+                msg = "OPENAI_COMPAT_API_KEY обязателен при AI_BACKEND=openai_compatible"
                 raise ValueError(msg)
         return self

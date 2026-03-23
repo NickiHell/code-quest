@@ -58,8 +58,9 @@ class YandexAIStudioAgentService(AbstractAIProvider):
         self,
         grade: str,
         topic: str | None = None,
+        seen_questions: list[str] | None = None,
     ) -> QuizQuestionData:
-        prompt = build_quiz_generation_prompt(grade, topic)
+        prompt = build_quiz_generation_prompt(grade, topic, seen_questions)
         raw = await self._complete(prompt)
         return parse_quiz_json(raw, default_grade=grade)
 

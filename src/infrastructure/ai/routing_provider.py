@@ -95,9 +95,10 @@ class RoutingAIProvider(AbstractAIProvider):
         self,
         grade: str,
         topic: str | None = None,
+        seen_questions: list[str] | None = None,
     ) -> QuizQuestionData:
         backend = await self._effective_backend()
-        return await self._providers[backend].generate_quiz_question(grade, topic)
+        return await self._providers[backend].generate_quiz_question(grade, topic, seen_questions)
 
     async def explain_quiz_choice(
         self,

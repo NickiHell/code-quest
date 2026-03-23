@@ -7,7 +7,6 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -36,26 +35,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         session_factory = create_session_factory(engine)
         redis = create_redis_client(str(settings.redis_url))
 
-        ollama_http: httpx.AsyncClient | None = None
-        if settings.ollama_base_url is not None:
-            ollama_http = httpx.AsyncClient(
-                base_url=str(settings.ollama_base_url).rstrip("/"),
-                timeout=httpx.Timeout(settings.ai_timeout),
-            )
-
-        openai_async: AsyncOpenAI | None = None
+        # Yandex Cloud (Responses API — gpt://... URI)
+        yandex_client: AsyncOpenAI | None = None
         if settings.yandex_folder_id and settings.yandex_auth:
-            openai_async = AsyncOpenAI(
+            yandex_client = AsyncOpenAI(
                 api_key=settings.yandex_auth,
                 base_url=str(settings.yandex_openai_base_url).rstrip("/"),
                 project=settings.yandex_folder_id,
                 timeout=float(settings.ai_timeout),
             )
 
+        # Любой OpenAI-совместимый провайдер: OpenAI, Groq, Together AI, Mistral, Deepseek…
+        openai_compat_client: AsyncOpenAI | None = None
+        if settings.openai_compat_api_key:
+            openai_compat_client = AsyncOpenAI(
+                api_key=settings.openai_compat_api_key,
+                base_url=(settings.openai_compat_base_url or "https://api.openai.com/v1"),
+                timeout=float(settings.ai_timeout),
+            )
+
         registry = build_provider_registry(
             settings,
-            httpx_client=ollama_http,
-            openai_client=openai_async,
+            yandex_client=yandex_client,
+            openai_compat_client=openai_compat_client,
         )
         ai_service = RoutingAIProvider(settings, redis, registry)
 
@@ -63,16 +65,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.engine = engine
         app.state.session_factory = session_factory
         app.state.redis = redis
-        app.state.ollama_http = ollama_http
-        app.state.openai_client = openai_async
+        app.state.yandex_client = yandex_client
+        app.state.openai_compat_client = openai_compat_client
         app.state.ai_service = ai_service
 
         logger.info("starting api (env=%s, ai_backend=%s)", settings.app_env, settings.ai_backend)
         yield
-        if ollama_http is not None:
-            await ollama_http.aclose()
-        if openai_async is not None:
-            await openai_async.close()
+        if yandex_client is not None:
+            await yandex_client.close()
+        if openai_compat_client is not None:
+            await openai_compat_client.close()
         await redis.aclose()  # type: ignore[attr-defined]
         await engine.dispose()
         logger.info("api shutdown complete")

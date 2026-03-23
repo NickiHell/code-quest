@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from openai import AsyncOpenAI
 
 from src.core.config import Settings
@@ -13,6 +15,9 @@ from src.infrastructure.ai.prompts import (
     build_quiz_generation_prompt,
     parse_quiz_json,
 )
+
+logger = logging.getLogger(__name__)
+_MAX_ATTEMPTS = 3
 
 
 class YandexOpenAIResponsesService(AbstractAIProvider):
@@ -66,10 +71,18 @@ class YandexOpenAIResponsesService(AbstractAIProvider):
         self,
         grade: str,
         topic: str | None = None,
+        seen_questions: list[str] | None = None,
     ) -> QuizQuestionData:
-        prompt = build_quiz_generation_prompt(grade, topic)
-        raw = await self._complete(prompt)
-        return parse_quiz_json(raw, default_grade=grade)
+        prompt = build_quiz_generation_prompt(grade, topic, seen_questions)
+        last_exc: Exception | None = None
+        for attempt in range(1, _MAX_ATTEMPTS + 1):
+            try:
+                raw = await self._complete(prompt)
+                return parse_quiz_json(raw, default_grade=grade)
+            except ValueError as exc:
+                last_exc = exc
+                logger.warning("quiz parse attempt %d/%d failed: %s", attempt, _MAX_ATTEMPTS, exc)
+        raise ValueError("quiz generation failed after retries") from last_exc
 
     async def explain_quiz_choice(
         self,

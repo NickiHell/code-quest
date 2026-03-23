@@ -12,6 +12,7 @@ from src.core.config import Settings
 from src.core.interfaces.ai_provider import AbstractAIProvider
 from src.infrastructure.ai.ai_service import OllamaAIService
 from src.infrastructure.ai.ollama_client import OllamaClient
+from src.infrastructure.ai.openai_compat_service import OpenAICompatService
 from src.infrastructure.ai.yandex_agent_service import YandexAIStudioAgentService
 from src.infrastructure.ai.yandex_gpt_service import YandexGPTAIService
 from src.infrastructure.ai.yandex_openai_responses_service import YandexOpenAIResponsesService
@@ -22,12 +23,14 @@ logger = logging.getLogger(__name__)
 def build_provider_registry(
     settings: Settings,
     *,
-    httpx_client: httpx.AsyncClient | None,
-    openai_client: AsyncOpenAI | None,
+    yandex_client: AsyncOpenAI | None = None,
+    openai_compat_client: AsyncOpenAI | None = None,
+    httpx_client: httpx.AsyncClient | None = None,
 ) -> dict[AiBackend, AbstractAIProvider]:
-    """Собрать провайдеры по .env (несколько бэкендов — переключение в рантайме)."""
+    """Собрать все доступные провайдеры; переключение бэкенда — в рантайме через Redis."""
     registry: dict[AiBackend, AbstractAIProvider] = {}
 
+    # Ollama (опционально — для локальной разработки)
     if httpx_client is not None and settings.ollama_base_url is not None:
         try:
             ollama = OllamaClient(httpx_client, settings.ai_model)
@@ -35,6 +38,7 @@ def build_provider_registry(
         except Exception:
             logger.exception("failed to register ollama backend")
 
+    # YandexGPT через yandex-ai-studio-sdk
     if settings.yandex_folder_id and settings.yandex_auth:
         try:
             registry[AiBackend.yandex_gpt] = YandexGPTAIService.from_settings(settings)
@@ -43,20 +47,28 @@ def build_provider_registry(
 
         if settings.yandex_assistant_id:
             try:
-                agent = YandexAIStudioAgentService.from_settings(settings)
-                registry[AiBackend.yandex_ai_studio_agent] = agent
+                registry[AiBackend.yandex_ai_studio_agent] = (
+                    YandexAIStudioAgentService.from_settings(settings)
+                )
             except Exception:
                 logger.warning("yandex_ai_studio_agent unavailable", exc_info=True)
 
-        if openai_client is not None:
+        if yandex_client is not None:
             try:
-                yor = YandexOpenAIResponsesService.from_settings(
-                    settings,
-                    client=openai_client,
+                registry[AiBackend.yandex_openai_responses] = (
+                    YandexOpenAIResponsesService.from_settings(settings, client=yandex_client)
                 )
-                registry[AiBackend.yandex_openai_responses] = yor
             except Exception:
                 logger.warning("yandex_openai_responses unavailable", exc_info=True)
+
+    # Любой OpenAI-совместимый провайдер (OpenAI, Groq, Together AI, Mistral, Deepseek…)
+    if openai_compat_client is not None and settings.openai_compat_api_key:
+        try:
+            registry[AiBackend.openai_compatible] = OpenAICompatService.from_settings(
+                settings, client=openai_compat_client
+            )
+        except Exception:
+            logger.warning("openai_compatible unavailable", exc_info=True)
 
     return registry
 
@@ -64,10 +76,11 @@ def build_provider_registry(
 def create_ai_provider(
     settings: Settings,
     *,
-    httpx_client: httpx.AsyncClient | None,
-    openai_client: AsyncOpenAI | None = None,
+    yandex_client: AsyncOpenAI | None = None,
+    openai_compat_client: AsyncOpenAI | None = None,
+    httpx_client: httpx.AsyncClient | None = None,
 ) -> AbstractAIProvider:
-    """Собрать реализацию AbstractAIProvider (Ollama или Yandex)."""
+    """Собрать одну реализацию AbstractAIProvider по AI_BACKEND из настроек."""
     if settings.ai_backend == AiBackend.ollama:
         if httpx_client is None:
             msg = "httpx_client is required for ollama backend"
@@ -83,10 +96,16 @@ def create_ai_provider(
         return YandexAIStudioAgentService.from_settings(settings)
 
     if settings.ai_backend == AiBackend.yandex_openai_responses:
-        if openai_client is None:
-            msg = "openai_client is required for yandex_openai_responses backend"
+        if yandex_client is None:
+            msg = "yandex_client (AsyncOpenAI) is required for yandex_openai_responses backend"
             raise ValueError(msg)
-        return YandexOpenAIResponsesService.from_settings(settings, client=openai_client)
+        return YandexOpenAIResponsesService.from_settings(settings, client=yandex_client)
+
+    if settings.ai_backend == AiBackend.openai_compatible:
+        if openai_compat_client is None:
+            msg = "openai_compat_client (AsyncOpenAI) is required for openai_compatible backend"
+            raise ValueError(msg)
+        return OpenAICompatService.from_settings(settings, client=openai_compat_client)
 
     msg = f"Unsupported AI backend: {settings.ai_backend}"
     raise ValueError(msg)

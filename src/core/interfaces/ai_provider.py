@@ -19,6 +19,7 @@ class AbstractAIProvider(ABC):
         self,
         grade: str,
         topic: str | None = None,
+        seen_questions: list[str] | None = None,
     ) -> QuizQuestionData:
         """Сгенерировать вопрос с ровно 10 вариантами и корректным индексом."""
 

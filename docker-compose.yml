@@ -19,19 +19,14 @@ services:
     env_file: .env
     environment:
       PYTHONPATH: /app
-      OLLAMA_BASE_URL: http://ollama:11434
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-      ollama:
-        condition: service_started
     volumes:
       - ./src:/app/src
       - ./static:/app/static
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - codequest
 
@@ -41,7 +36,6 @@ services:
     env_file: .env
     environment:
       PYTHONPATH: /app
-      OLLAMA_BASE_URL: http://ollama:11434
     dns:
       - 8.8.8.8
       - 1.1.1.1
@@ -50,8 +44,6 @@ services:
         condition: service_started
       db:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - codequest
 
@@ -62,7 +54,6 @@ services:
       POSTGRES_PASSWORD: codequest
       POSTGRES_DB: codequest
     ports:
-      # Чтобы запускать бота на хосте, если из Docker нет доступа к api.telegram.org
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -87,14 +78,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-  ollama:
-    image: ollama/ollama:latest
-    volumes:
-      # Монтируем папку с моделями с хоста — повторная загрузка не нужна
-      - /usr/share/ollama/.ollama:/root/.ollama
-    networks:
-      - codequest
 
 networks:
   codequest:

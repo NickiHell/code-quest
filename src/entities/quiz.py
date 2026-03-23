@@ -16,11 +16,11 @@ class QuizQuestionData:
     grade: str
 
     def __post_init__(self) -> None:
-        if len(self.options) != 10:
-            msg = "Quiz must have exactly 10 options"
+        if not (2 <= len(self.options) <= 8):
+            msg = "Quiz must have between 2 and 8 options"
             raise ValueError(msg)
-        if not (0 <= self.correct_index < 10):
-            msg = "correct_index must be 0..9"
+        if not (0 <= self.correct_index < len(self.options)):
+            msg = "correct_index out of range"
             raise ValueError(msg)
 
 
