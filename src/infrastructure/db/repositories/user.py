@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from sqlalchemy import desc, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.interfaces.repositories import AbstractUserRepository
@@ -21,6 +24,15 @@ class SQLAlchemyUserRepository(AbstractUserRepository):
         row = await self._session.get(UserModel, user_id)
         return None if row is None else row.to_entity()
 
+    async def get_by_ids(self, user_ids: list[int]) -> dict[int, User]:
+        """Пакетная загрузка по id (для лидерборда без N+1)."""
+        if not user_ids:
+            return {}
+        stmt = select(UserModel).where(UserModel.id.in_(user_ids))
+        result = await self._session.execute(stmt)
+        rows = result.scalars().all()
+        return {int(row.id): row.to_entity() for row in rows}
+
     async def get_by_telegram_id(self, telegram_id: int) -> User | None:
         """Return a user by Telegram id."""
         stmt = select(UserModel).where(UserModel.telegram_id == telegram_id).limit(1)
@@ -30,8 +42,6 @@ class SQLAlchemyUserRepository(AbstractUserRepository):
 
     async def create(self, telegram_id: int, username: str | None) -> User:
         """Persist a new user."""
-        from datetime import UTC, datetime
-
         model = UserModel(
             telegram_id=telegram_id,
             username=username,
@@ -42,6 +52,24 @@ class SQLAlchemyUserRepository(AbstractUserRepository):
         await self._session.flush()
         await self._session.refresh(model)
         return model.to_entity()
+
+    async def get_or_create_by_telegram_id(
+        self,
+        telegram_id: int,
+        username: str | None,
+    ) -> User:
+        """Создать пользователя при отсутствии; переживает параллельные «первые» запросы."""
+        existing = await self.get_by_telegram_id(telegram_id)
+        if existing is not None:
+            return existing
+        try:
+            return await self.create(telegram_id, username)
+        except IntegrityError:
+            await self._session.rollback()
+            existing = await self.get_by_telegram_id(telegram_id)
+            if existing is not None:
+                return existing
+            raise
 
     async def update(self, user: User) -> User:
         """Persist changes to an existing user."""
