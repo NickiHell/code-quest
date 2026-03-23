@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from pathlib import Path
 from types import FrameType
 from typing import Final
 
@@ -49,11 +50,13 @@ def configure_loguru(
     level: str = "INFO",
     app_env: str | None = None,
     colorize: bool | None = None,
+    log_dir: str | None = "logs",
 ) -> None:
     """Настроить loguru и перехватить logging для библиотек с классическим API.
 
     В TTY — цвета и разделители; в pipe/Docker — плоский текст без ANSI.
     В development для исключений включается diagnose (переменные в стеке).
+    Файл ``{log_dir}/app.log`` с ротацией при достижении 100 МБ (если ``log_dir`` не пустой).
     """
     log_level = level.upper()
     numeric = getattr(logging, log_level, logging.INFO)
@@ -100,5 +103,32 @@ def configure_loguru(
         enqueue=False,
     )
 
+    log_root = (log_dir or "").strip()
+    if log_root:
+        path = Path(log_root)
+        path.mkdir(parents=True, exist_ok=True)
+        log_file = path / "app.log"
+        try:
+            logger.add(
+                str(log_file),
+                level=log_level,
+                format=fmt,
+                colorize=False,
+                backtrace=True,
+                diagnose=dev,
+                rotation="100 MB",
+                encoding="utf-8",
+                enqueue=True,
+            )
+        except OSError as exc:
+            logger.warning(
+                "Log file not writable ({}): {} — stderr only",
+                log_file,
+                exc,
+            )
+
     for name in _LOGGERS_QUIET:
         logging.getLogger(name).setLevel(logging.WARNING)
+
+    # Без echo в engine SQL всё равно может сыпаться на INFO — тише для читаемых логов.
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)

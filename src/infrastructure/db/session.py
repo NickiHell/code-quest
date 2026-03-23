@@ -16,7 +16,7 @@ def create_engine(settings: Settings) -> AsyncEngine:
     """Build an async engine for PostgreSQL (asyncpg)."""
     return create_async_engine(
         str(settings.database_url),
-        echo=settings.app_env == "development",
+        echo=False,
         pool_pre_ping=True,
     )
 

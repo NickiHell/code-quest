@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     app_env: str = "development"
     secret_key: str = Field(..., min_length=8)
     log_level: str = "INFO"
+    log_dir: str = Field(
+        default="logs",
+        description="Каталог для файлов логов (ротация по размеру). Пустая строка — только stderr.",
+    )
 
     database_url: str
     redis_url: str
