@@ -86,7 +86,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 base = str(settings.public_base_url).rstrip("/")
                 wh_url = f"{base}/webhook/telegram/{settings.telegram_webhook_secret}"
                 await telegram_bot.set_webhook(url=wh_url, drop_pending_updates=False)
-                logger.info("telegram webhook registered: %s", wh_url)
+                logger.info(
+                    "telegram webhook registered: %s/webhook/telegram/<secret>",
+                    base,
+                )
             except (TelegramAPIError, OSError) as exc:
                 logger.warning("telegram set_webhook / profile failed: %s", exc)
         else:

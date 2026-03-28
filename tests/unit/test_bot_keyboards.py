@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from src.core.config import Settings
 from src.interfaces.bot.keyboards.inline import group_menu_inline, private_menu_inline
 from src.interfaces.bot.keyboards.main import main_menu_keyboard
@@ -21,7 +23,8 @@ def _cfg() -> Settings:
 
 def test_group_menu_inline_with_username_uses_tme() -> None:
     kb = group_menu_inline(_cfg(), bot_username="@mybot")
-    assert "t.me/mybot" in kb.inline_keyboard[0][0].url
+    u = urlparse(kb.inline_keyboard[0][0].url)
+    assert u.scheme == "https" and u.netloc == "t.me" and u.path == "/mybot"
 
 
 def test_group_menu_inline_without_username_falls_back() -> None:
@@ -30,10 +33,11 @@ def test_group_menu_inline_without_username_falls_back() -> None:
 
 
 def test_private_menu_inline_has_web_app() -> None:
-    kb = private_menu_inline(_cfg())
+    cfg = _cfg()
+    kb = private_menu_inline(cfg)
     btn = kb.inline_keyboard[0][0]
     assert btn.web_app is not None
-    assert "example.com" in btn.web_app.url
+    assert btn.web_app.url == str(cfg.webapp_url)
 
 
 def test_main_menu_keyboard_uses_passed_settings() -> None:
