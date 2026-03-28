@@ -1,5 +1,3 @@
-"""Yandex Cloud через OpenAI-совместимый API (responses.create на ai.api.cloud.yandex.net)."""
-
 from __future__ import annotations
 
 import logging
@@ -10,6 +8,7 @@ from src.core.config import Settings
 from src.core.interfaces.ai_provider import AbstractAIProvider
 from src.entities.quiz import QuizQuestionData
 from src.infrastructure.ai.prompts import (
+    QUIZ_GENERATION_SYSTEM_INSTRUCTIONS,
     build_evaluate_code_prompt,
     build_quiz_explain_prompt,
     build_quiz_generation_prompt,
@@ -53,11 +52,11 @@ class YandexOpenAIResponsesService(AbstractAIProvider):
             max_output_tokens=settings.yandex_openai_max_output_tokens,
         )
 
-    async def _complete(self, prompt: str) -> str:
+    async def _complete(self, prompt: str, *, instructions: str = "") -> str:
         response = await self._client.responses.create(
             model=self._model_uri,
             temperature=self._temperature,
-            instructions="",
+            instructions=instructions,
             input=prompt,
             max_output_tokens=self._max_output_tokens,
         )
@@ -73,11 +72,14 @@ class YandexOpenAIResponsesService(AbstractAIProvider):
         topic: str | None = None,
         seen_questions: list[str] | None = None,
     ) -> QuizQuestionData:
-        prompt = build_quiz_generation_prompt(grade, topic, seen_questions)
         last_exc: Exception | None = None
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
-                raw = await self._complete(prompt)
+                prompt = build_quiz_generation_prompt(grade, topic, seen_questions)
+                raw = await self._complete(
+                    prompt,
+                    instructions=QUIZ_GENERATION_SYSTEM_INSTRUCTIONS,
+                )
                 return parse_quiz_json(raw, default_grade=grade)
             except ValueError as exc:
                 last_exc = exc

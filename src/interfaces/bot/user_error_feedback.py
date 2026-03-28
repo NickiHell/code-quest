@@ -1,5 +1,3 @@
-"""Краткие ответы пользователю при сбоях без утечки внутренних деталей."""
-
 from __future__ import annotations
 
 import asyncio

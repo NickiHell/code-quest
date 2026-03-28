@@ -1,9 +1,3 @@
-"""Optional Docker-based code execution (sandbox).
-
-The Docker Python SDK is synchronous; long-running work is offloaded via
-:func:`asyncio.to_thread` to avoid blocking the event loop.
-"""
-
 from __future__ import annotations
 
 import asyncio

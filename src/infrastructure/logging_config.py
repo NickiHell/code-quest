@@ -1,5 +1,3 @@
-"""Единая настройка loguru и перехват стандартного logging (aiogram, uvicorn, SQLAlchemy)."""
-
 from __future__ import annotations
 
 import logging

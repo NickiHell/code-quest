@@ -1,5 +1,3 @@
-"""Use case: create a submission, evaluate code, persist results."""
-
 from __future__ import annotations
 
 import logging

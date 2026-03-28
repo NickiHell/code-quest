@@ -68,20 +68,29 @@ function applyTheme() {
   }
 }
 
+/** Сырая initData для проверки на сервере (Mini App). */
+function telegramAuthHeaders() {
+  const raw = collectRawInitData();
+  if (!raw) return {};
+  return { "X-Telegram-Init-Data": raw };
+}
+
 async function fetchJson(path, options = {}) {
-  const { headers: userHeaders, timeoutMs, ...rest } = options;
+  const { headers: userHeaders, timeoutMs, requireTelegramAuth, ...rest } = options;
   const hasBody = rest.body != null && String(rest.method || "GET").toUpperCase() !== "GET";
   const ctrl = new AbortController();
   const t =
     typeof timeoutMs === "number" && timeoutMs > 0
       ? setTimeout(() => ctrl.abort(), timeoutMs)
       : null;
+  const tgH = requireTelegramAuth ? telegramAuthHeaders() : {};
   const res = await fetch(path, {
     ...rest,
     signal: ctrl.signal,
     headers: {
       Accept: "application/json",
       ...(hasBody ? { "Content-Type": "application/json" } : {}),
+      ...tgH,
       ...userHeaders,
     },
   }).finally(() => {
@@ -89,6 +98,14 @@ async function fetchJson(path, options = {}) {
   });
   if (!res.ok) {
     const text = await res.text();
+    if (res.status === 401) {
+      throw new Error(
+        "Сессия Telegram недействительна или устарела. Закройте Mini App и откройте снова из бота.",
+      );
+    }
+    if (res.status === 429) {
+      throw new Error("Слишком много запросов. Подождите около минуты.");
+    }
     throw new Error(`${res.status} ${text}`);
   }
   return res.json();
@@ -122,16 +139,32 @@ function friendlyError(err) {
  * В части клиентов `initDataUnsafe.user` пуст, хотя Mini App открыт из бота;
  * тогда пользователь всё ещё в сырой строке `Telegram.WebApp.initData`.
  */
-function parseUserFromInitData(raw) {
-  if (!raw || typeof raw !== "string") return null;
+function _tryParseUserQueryString(s) {
   try {
-    const params = new URLSearchParams(raw);
+    const params = new URLSearchParams(s);
     const userJson = params.get("user");
     if (!userJson) return null;
     return JSON.parse(userJson);
   } catch {
     return null;
   }
+}
+
+function parseUserFromInitData(raw) {
+  if (!raw || typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  let u = _tryParseUserQueryString(trimmed);
+  if (u?.id != null) return u;
+  if (trimmed.includes("%")) {
+    try {
+      const decoded = decodeURIComponent(trimmed.replace(/\+/g, " "));
+      u = _tryParseUserQueryString(decoded);
+      if (u?.id != null) return u;
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
 }
 
 /** Как в telegram-web-app.js: initParams из sessionStorage после первого захода с hash. */
@@ -255,6 +288,36 @@ async function ensureTelegramUser(maxMs = 10000) {
   return cid != null ? { id: cid } : null;
 }
 
+/** Дольше ждём initData на ngrok/localhost — после «Visit» данные могут прийти с задержкой. */
+function telegramIdWaitBudgetMs() {
+  const h = String(window.location.hostname || "").toLowerCase();
+  if (h.includes("ngrok") || h === "localhost" || h.endsWith(".local")) {
+    return 28000;
+  }
+  return 12000;
+}
+
+function renderTelegramIdError() {
+  const body = document.getElementById("quiz-body");
+  if (!body) return;
+  body.classList.remove("quiz-body--empty");
+  const noWebApp = !window.Telegram?.WebApp;
+  const line1 = noWebApp
+    ? "Откройте квиз только из приложения Telegram (кнопка Mini App у бота). В обычном браузере профиль недоступен."
+    : '<span class="err">Не удалось получить ваш Telegram ID</span>.';
+  body.innerHTML = `
+    <p class="muted" style="margin:0 0 12px">${line1}</p>
+    <p class="muted" style="margin:0 0 12px">
+      Закройте Mini App полностью и откройте снова кнопкой <b>Mini App</b> внизу чата или через <b>/app</b>.
+      Если используете <b>ngrok</b>: на предупреждающей странице один раз нажмите <b>Visit</b>, затем снова откройте квиз из бота.
+    </p>
+    <button type="button" class="btn btn--ghost" id="btn-retry-telegram">Повторить попытку</button>
+  `;
+  document.getElementById("btn-retry-telegram")?.addEventListener("click", () => loadNextQuestion(), {
+    once: true,
+  });
+}
+
 function getSelectedGrade() {
   const active = document.querySelector('.grade-chip[aria-checked="true"]');
   return active?.dataset.grade ?? "medium";
@@ -371,8 +434,8 @@ async function submitAnswer(chosenIndex) {
   try {
     const data = await fetchJson("/api/quiz/answer", {
       method: "POST",
+      requireTelegramAuth: true,
       body: JSON.stringify({
-        telegram_id: telegramId,
         question_id: currentQuestionId,
         chosen_index: chosenIndex,
       }),
@@ -415,22 +478,8 @@ const GRADE_LABELS = {
 
 const TOPIC_LABELS = {
   python: "Python",
-  javascript: "JavaScript",
-  algorithms: "Алгоритмы",
   data_structures: "Структуры данных",
-  engineering_management: "Управление командой разработки",
-  startup_capitalization: "Создание компании и капитализация",
-  chess: "Шахматы",
-  go: "Го",
-  land_navigation: "Навигация на местности",
-  fishing: "Рыбалка",
-  car_repair: "Ремонт авто",
-  uavs: "БПЛА",
-  military_tactics: "Военная тактика",
-  reb: "РЭБ",
-  lrs: "ЛРС",
-  flight_controllers: "Полётные контроллеры",
-  aerodynamics: "Аэродинамика",
+  algorithms: "Алгоритмы",
 };
 
 function showGenerating(topic, grade) {
@@ -464,26 +513,17 @@ async function loadNextQuestion() {
   const topic = getSelectedTopic();
   showGenerating(topic, grade);
   try {
-    const user = await ensureTelegramUser(12000);
+    const user = await ensureTelegramUser(telegramIdWaitBudgetMs());
     const telegramId = user?.id ?? null;
     if (telegramId == null) {
-      const body = document.getElementById("quiz-body");
-      if (body) {
-        body.classList.remove("quiz-body--empty");
-        body.innerHTML =
-          '<span class="err">Не удалось получить ваш Telegram ID</span>. ' +
-          "Закройте Mini App полностью и откройте снова кнопкой <b>Mini App</b> внизу чата или через /app. " +
-          "Не открывайте ссылку на квиз в обычном браузере. " +
-          "Если стоит ngrok: на странице предупреждения нажмите «Visit» один раз — без этого Telegram может не передать данные.";
-      }
+      renderTelegramIdError();
       return;
     }
     const data = await fetchJson("/api/quiz/next", {
       method: "POST",
       timeoutMs: 120000,
+      requireTelegramAuth: true,
       body: JSON.stringify({
-        telegram_id: telegramId,
-        username: user?.username ?? null,
         grade,
         topic,
       }),
@@ -497,6 +537,85 @@ async function loadNextQuestion() {
     if (body) {
       body.classList.remove("quiz-body--empty");
       body.innerHTML = `<span class="err">${escapeHtml(friendlyError(e))}</span>`;
+    }
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
+
+let currentDailyTaskId = null;
+
+async function loadDailyTask() {
+  const btn = document.getElementById("btn-task-load");
+  const body = document.getElementById("task-body");
+  const editor = document.getElementById("task-editor");
+  const result = document.getElementById("task-result");
+  if (!body || !editor) return;
+  setButtonLoading(btn, true);
+  if (result) {
+    result.hidden = true;
+    result.innerHTML = "";
+  }
+  if (!collectRawInitData()) {
+    body.classList.remove("muted");
+    body.innerHTML = "<p>Нет данных Telegram. Откройте Mini App из бота.</p>";
+    editor.hidden = true;
+    currentDailyTaskId = null;
+    setButtonLoading(btn, false);
+    return;
+  }
+  try {
+    const t = await fetchJson("/api/tasks/daily", { requireTelegramAuth: true });
+    currentDailyTaskId = t.id;
+    body.classList.remove("muted");
+    body.innerHTML = `<p class="task-daily-meta">${escapeHtml(t.title)} · <span class="muted">${escapeHtml(
+      String(t.difficulty || ""),
+    )}</span></p><div class="task-desc">${escapeHtml(t.description)}</div>`;
+    editor.hidden = false;
+  } catch (e) {
+    currentDailyTaskId = null;
+    editor.hidden = true;
+    const s = String(e);
+    const msg = friendlyError(e);
+    if (s.includes("404")) {
+      body.innerHTML =
+        "<p>Сегодня задача не назначена. Загляните позже или обратитесь к администратору.</p>";
+    } else {
+      body.innerHTML = `<p class="err">${escapeHtml(msg)}</p>`;
+    }
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
+
+async function submitDailyTask() {
+  const btn = document.getElementById("btn-task-submit");
+  const ta = document.getElementById("task-code");
+  const result = document.getElementById("task-result");
+  if (currentDailyTaskId == null || !ta) return;
+  const code = ta.value || "";
+  if (!code.trim()) return;
+  setButtonLoading(btn, true);
+  try {
+    const data = await fetchJson("/api/submissions/", {
+      method: "POST",
+      requireTelegramAuth: true,
+      timeoutMs: 120000,
+      body: JSON.stringify({
+        task_id: currentDailyTaskId,
+        code,
+      }),
+    });
+    if (result) {
+      result.hidden = false;
+      result.className = "quiz-result";
+      result.innerHTML = `<p class="muted">Оценка: <strong>${escapeHtml(String(data.score))}</strong></p><p class="feedback">${escapeHtml(data.feedback)}</p>`;
+    }
+  } catch (e) {
+    if (result) {
+      result.hidden = false;
+      result.className = "quiz-result";
+      result.innerHTML = `<p class="err">${escapeHtml(friendlyError(e))}</p>`;
     }
   } finally {
     setButtonLoading(btn, false);
@@ -555,7 +674,7 @@ async function main() {
   const hint = document.getElementById("hint");
   if (hint) {
     hint.textContent = tg
-      ? "Вы в Telegram — жми «Новый вопрос», когда будешь готов."
+      ? "Квиз и задача дня — кнопки ниже. Нужен вход через Telegram."
       : "Откройте страницу по кнопке Web App в боте (нужен HTTPS).";
   }
 
@@ -599,6 +718,8 @@ async function main() {
 
   document.getElementById("btn-next")?.addEventListener("click", () => loadNextQuestion());
   document.getElementById("btn-leaderboard")?.addEventListener("click", () => loadLeaderboard());
+  document.getElementById("btn-task-load")?.addEventListener("click", () => loadDailyTask());
+  document.getElementById("btn-task-submit")?.addEventListener("click", () => submitDailyTask());
 
   await loadLeaderboard();
 }

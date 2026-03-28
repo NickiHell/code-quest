@@ -1,5 +1,3 @@
-"""Application settings loaded from environment variables."""
-
 from __future__ import annotations
 
 import os
@@ -13,8 +11,6 @@ from src.core.ai_backend import AiBackend
 
 
 class Settings(BaseSettings):
-    """Runtime configuration (12-factor): secrets and URLs come from the environment."""
-
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -25,69 +21,33 @@ class Settings(BaseSettings):
     app_env: str = "development"
     secret_key: str = Field(..., min_length=8)
     log_level: str = "INFO"
-    log_dir: str = Field(
-        default="logs",
-        description="Каталог для файлов логов (ротация по размеру). Пустая строка — только stderr.",
-    )
+    log_dir: str = Field(default="logs")
 
     database_url: str
     redis_url: str
 
     bot_token: str = Field(..., min_length=10)
-    webapp_url: HttpUrl = Field(
-        ...,
-        description="HTTPS URL страницы Mini App (WebView внутри Telegram).",
-    )
-    public_base_url: HttpUrl = Field(
-        ...,
-        description="Корень сервера для ссылок на веб-панель и CORS.",
-    )
-    admin_api_key: str = Field(
-        ...,
-        min_length=16,
-        description="Секрет для /api/admin/* (заголовок X-Admin-Key).",
-    )
+    telegram_init_data_max_age_seconds: int = Field(default=86400, ge=0, le=604800)
+    rate_limit_quiz_next_per_minute: int = Field(default=10, ge=1)
+    rate_limit_quiz_answer_per_minute: int = Field(default=60, ge=1)
+    rate_limit_submissions_per_minute: int = Field(default=15, ge=1)
+    webapp_url: HttpUrl = Field(...)
+    public_base_url: HttpUrl = Field(...)
 
-    ai_backend: AiBackend = Field(
-        default=AiBackend.yandex_openai_responses,
-        description="yandex_gpt | yandex_ai_studio_agent | yandex_openai_responses",
-    )
+    ai_backend: AiBackend = Field(default=AiBackend.yandex_openai_responses)
     ai_timeout: int = Field(default=30, ge=1, le=600)
 
-    yandex_folder_id: str | None = Field(
-        default=None,
-        description="YC folder ID (биллинг) для YandexGPT / AI Studio.",
-    )
-    yandex_auth: str | None = Field(
-        default=None,
-        description="API-ключ или IAM-токен Yandex Cloud (строка для SDK).",
-    )
-    yandex_gpt_model_name: str = Field(
-        default="yandexgpt",
-        description="Имя модели или полный modelUri (если содержит ://).",
-    )
+    yandex_folder_id: str | None = None
+    yandex_auth: str | None = None
+    yandex_gpt_model_name: str = "yandexgpt"
     yandex_gpt_model_version: str = "latest"
 
-    yandex_assistant_id: str | None = Field(
-        default=None,
-        description="ID ассистента в AI Studio (ai_backend=yandex_ai_studio_agent).",
-    )
+    yandex_assistant_id: str | None = None
 
-    yandex_openai_base_url: str = Field(
-        default="https://ai.api.cloud.yandex.net/v1",
-        description="OpenAI-compatible endpoint Yandex Cloud (responses API).",
-    )
-    yandex_openai_model: str = Field(
-        default="aliceai-llm/latest",
-        description="Имя модели или полный gpt://... URI (YANDEX_CLOUD_MODEL).",
-    )
+    yandex_openai_base_url: str = "https://ai.api.cloud.yandex.net/v1"
+    yandex_openai_model: str = "aliceai-llm/latest"
     yandex_openai_temperature: float = Field(default=0.3, ge=0.0, le=2.0)
-    yandex_openai_max_output_tokens: int = Field(
-        default=4096,
-        ge=1,
-        le=32000,
-        description="Лимит вывода для responses.create.",
-    )
+    yandex_openai_max_output_tokens: int = Field(default=4096, ge=1, le=32000)
 
     sandbox_timeout: int = Field(default=5, ge=1, le=300)
     sandbox_memory_limit: str = "256m"
@@ -96,7 +56,6 @@ class Settings(BaseSettings):
     @field_validator("public_base_url", mode="before")
     @classmethod
     def public_base_must_be_origin(cls, value: Any) -> Any:
-        """CORS и ссылки ожидают корень сайта без пути (не …/miniapp/)."""
         if value is None or not isinstance(value, str):
             return value
         s = value.strip()
@@ -112,7 +71,6 @@ class Settings(BaseSettings):
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, value: str) -> str:
-        """Ensure SQLAlchemy URL uses supported async drivers."""
         allowed = ("postgresql+asyncpg://", "sqlite+aiosqlite://")
         if not any(value.startswith(prefix) for prefix in allowed):
             msg = "DATABASE_URL must start with postgresql+asyncpg:// or sqlite+aiosqlite://"
@@ -122,7 +80,6 @@ class Settings(BaseSettings):
     @field_validator("redis_url")
     @classmethod
     def validate_redis_url(cls, value: str) -> str:
-        """Accept redis:// and rediss:// URLs."""
         if not value.startswith(("redis://", "rediss://")):
             msg = "REDIS_URL must start with redis:// or rediss://"
             raise ValueError(msg)
@@ -130,7 +87,6 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def merge_yandex_cloud_env_aliases(self) -> Self:
-        """Поддержка имён из доков Yandex: YANDEX_CLOUD_FOLDER, YANDEX_CLOUD_API_KEY."""
         updates: dict[str, Any] = {}
         if self.yandex_folder_id is None:
             cloud_folder = os.environ.get("YANDEX_CLOUD_FOLDER")
@@ -150,7 +106,6 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_ai_backend_fields(self) -> Self:
-        """Условные обязательные поля в зависимости от AI_BACKEND."""
         if self.ai_backend == AiBackend.yandex_gpt:
             if not self.yandex_folder_id or not self.yandex_auth:
                 msg = "YANDEX_FOLDER_ID and YANDEX_AUTH are required when AI_BACKEND=yandex_gpt"

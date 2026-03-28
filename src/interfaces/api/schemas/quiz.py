@@ -1,5 +1,3 @@
-"""DTO для MCQ API."""
-
 from __future__ import annotations
 
 from enum import StrEnum
@@ -16,10 +14,8 @@ class Grade(StrEnum):
 
 
 class NextQuizRequest(BaseModel):
-    """Запрос нового вопроса."""
+    """Запрос нового вопроса (пользователь — из заголовка X-Telegram-Init-Data)."""
 
-    telegram_id: int = Field(..., ge=1)
-    username: str | None = Field(default=None, max_length=255)
     grade: Grade
     topic: str | None = Field(default=None, max_length=200)
 
@@ -39,9 +35,8 @@ class QuizQuestionResponse(BaseModel):
 
 
 class SubmitQuizRequest(BaseModel):
-    """Ответ на вопрос."""
+    """Ответ на вопрос (пользователь — из заголовка X-Telegram-Init-Data)."""
 
-    telegram_id: int = Field(..., ge=1)
     question_id: int = Field(..., ge=1)
     chosen_index: int = Field(..., ge=0, le=4)
 

@@ -1,5 +1,3 @@
-"""Submission HTTP routes."""
-
 from __future__ import annotations
 
 import logging
@@ -7,7 +5,8 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.core.exceptions import DomainError, DomainValidationError, NotFoundError
-from src.interfaces.api.deps import get_create_submission_use_case
+from src.entities.telegram_webapp import WebAppUser
+from src.interfaces.api.deps import get_create_submission_use_case, get_webapp_user_submission
 from src.interfaces.api.schemas.requests import CreateSubmissionRequest
 from src.interfaces.api.schemas.responses import SubmissionResponse
 from src.use_cases.create_submission import CreateSubmissionUseCase
@@ -20,13 +19,14 @@ router = APIRouter(prefix="/api/submissions", tags=["submissions"])
 @router.post("/", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
 async def create_submission(
     body: CreateSubmissionRequest,
+    web_user: WebAppUser = Depends(get_webapp_user_submission),
     use_case: CreateSubmissionUseCase = Depends(get_create_submission_use_case),
 ) -> SubmissionResponse:
     """Accept a new submission, run AI evaluation, persist results."""
     try:
         entity = await use_case.execute(
-            telegram_id=body.telegram_id,
-            username=body.username,
+            telegram_id=web_user.telegram_id,
+            username=web_user.username,
             task_id=body.task_id,
             code=body.code,
         )

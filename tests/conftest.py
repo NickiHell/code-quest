@@ -1,5 +1,3 @@
-"""Pytest fixtures."""
-
 from __future__ import annotations
 
 import os
@@ -30,13 +28,11 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
 os.environ.setdefault("BOT_TOKEN", "1234567890:ABCDEF-test-token")
 os.environ.setdefault("WEBAPP_URL", "https://example.com/miniapp/")
 os.environ.setdefault("PUBLIC_BASE_URL", "https://example.com")
-os.environ.setdefault("ADMIN_API_KEY", "test-admin-key-for-ci-16")
 os.environ.setdefault("LOG_DIR", "")
 
 
 @pytest.fixture
 async def async_db_session() -> AsyncIterator[AsyncSession]:
-    """In-memory SQLite session with automatic rollback after each test."""
     engine: AsyncEngine = create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
     session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
@@ -54,7 +50,6 @@ async def async_db_session() -> AsyncIterator[AsyncSession]:
 
 @pytest.fixture
 def mock_ai_service() -> AbstractAIProvider:
-    """Stub AI provider returning deterministic feedback."""
     mock = AsyncMock(spec=AbstractAIProvider)
     mock.evaluate_code = AsyncMock(return_value="Excellent solution.")
     mock.generate_quiz_question = AsyncMock(
@@ -71,7 +66,6 @@ def mock_ai_service() -> AbstractAIProvider:
 
 @pytest.fixture
 async def redis_client() -> AsyncIterator[redis_async.Redis]:
-    """Best-effort async Redis client for integration tests (skipped if unavailable)."""
     url = os.environ["REDIS_URL"]
     client = redis_async.from_url(url, decode_responses=True)
     try:

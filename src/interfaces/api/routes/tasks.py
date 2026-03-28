@@ -1,5 +1,3 @@
-"""Task HTTP routes."""
-
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
@@ -7,7 +5,8 @@ from datetime import UTC, date, datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.core.interfaces.repositories import AbstractTaskRepository
-from src.interfaces.api.deps import get_task_repository
+from src.entities.telegram_webapp import WebAppUser
+from src.interfaces.api.deps import get_task_repository, get_webapp_user_tasks_daily
 from src.interfaces.api.schemas.responses import TaskResponse
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -15,6 +14,7 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 @router.get("/daily", response_model=TaskResponse)
 async def get_daily_task(
+    _web_user: WebAppUser = Depends(get_webapp_user_tasks_daily),
     repo: AbstractTaskRepository = Depends(get_task_repository),
     day: date | None = Query(
         default=None,

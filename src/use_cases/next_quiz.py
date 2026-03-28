@@ -1,5 +1,3 @@
-"""Выдать следующий вопрос: генерация ИИ + сохранение."""
-
 from __future__ import annotations
 
 import hashlib

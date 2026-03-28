@@ -1,7 +1,6 @@
-"""YandexGPT (Foundation Models) через yandex-ai-studio-sdk."""
-
 from __future__ import annotations
 
+import logging
 from typing import Any, cast
 
 from yandex_ai_studio_sdk import AsyncAIStudio
@@ -15,6 +14,9 @@ from src.infrastructure.ai.prompts import (
     build_quiz_generation_prompt,
     parse_quiz_json,
 )
+
+logger = logging.getLogger(__name__)
+_MAX_ATTEMPTS = 3
 
 
 class YandexGPTAIService(AbstractAIProvider):
@@ -53,9 +55,16 @@ class YandexGPTAIService(AbstractAIProvider):
         topic: str | None = None,
         seen_questions: list[str] | None = None,
     ) -> QuizQuestionData:
-        prompt = build_quiz_generation_prompt(grade, topic, seen_questions)
-        raw = await self._complete(prompt)
-        return parse_quiz_json(raw, default_grade=grade)
+        last_exc: Exception | None = None
+        for attempt in range(1, _MAX_ATTEMPTS + 1):
+            try:
+                prompt = build_quiz_generation_prompt(grade, topic, seen_questions)
+                raw = await self._complete(prompt)
+                return parse_quiz_json(raw, default_grade=grade)
+            except ValueError as exc:
+                last_exc = exc
+                logger.warning("quiz parse attempt %d/%d failed: %s", attempt, _MAX_ATTEMPTS, exc)
+        raise ValueError("quiz generation failed after retries") from last_exc
 
     async def explain_quiz_choice(
         self,

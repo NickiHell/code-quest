@@ -1,5 +1,3 @@
-"""Aiogram entrypoint: polling mode for development/staging."""
-
 from __future__ import annotations
 
 import asyncio

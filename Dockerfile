@@ -13,6 +13,7 @@ COPY --from=builder /install /usr/local/lib/python3.11/site-packages
 COPY src/ ./src/
 COPY static/ ./static/
 COPY alembic/ ./alembic/
+COPY scripts/ ./scripts/
 COPY alembic.ini ./
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh \

@@ -1,5 +1,3 @@
-"""Регистрация списка команд и кнопки меню (Mini App) в Telegram."""
-
 from __future__ import annotations
 
 from aiogram import Bot

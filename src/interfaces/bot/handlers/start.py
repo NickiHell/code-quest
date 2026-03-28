@@ -1,5 +1,3 @@
-"""Команда /start — отдельно для лички и для групп."""
-
 from __future__ import annotations
 
 from aiogram import Bot, F, Router
@@ -18,7 +16,8 @@ async def handle_start_private(message: Message) -> None:
     """Приветствие в личке: reply-клавиатура с Web App."""
     settings = Settings()
     await message.answer(
-        "Добро пожаловать в <b>Code Quest</b> — квиз по коду, шахматам, го и не только.\n\n"
+        "Добро пожаловать в <b>Code Quest</b> — квиз по <b>Python</b>, "
+        "структурам данных и алгоритмам.\n\n"
         "Нажмите кнопку <b>Mini App: Code Quest</b> внизу — приложение откроется "
         "<b>внутри Telegram</b>.\n"
         "Тему, сложность и лидерборд смотрите в приложении. Команда /app — кнопки Mini App.",

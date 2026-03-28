@@ -1,10 +1,8 @@
-"""Тесты разбора JSON квиза."""
-
 from __future__ import annotations
 
 import pytest
 
-from src.infrastructure.ai.prompts import parse_quiz_json
+from src.infrastructure.ai.prompts import build_quiz_generation_prompt, parse_quiz_json
 
 
 def test_parse_quiz_json_valid() -> None:
@@ -37,3 +35,13 @@ def test_parse_quiz_json_requires_five_options() -> None:
     raw = '{"question_text": "Q?", "options": ["a","b"], "correct_index": 0, "grade": "easy"}'
     with pytest.raises(ValueError, match="Invalid"):
         parse_quiz_json(raw, default_grade="easy")
+
+
+def test_seen_questions_block_omits_counter_uas_phrases() -> None:
+    seen = [
+        "Сколько осей у стабилизатора камеры?",
+        "Что такое система контр-БПЛА?",
+    ]
+    prompt = build_quiz_generation_prompt("easy", "python", seen)
+    assert "контр-БПЛА" not in prompt
+    assert "стабилизатора камеры" in prompt

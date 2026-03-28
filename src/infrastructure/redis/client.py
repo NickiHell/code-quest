@@ -1,5 +1,3 @@
-"""Async Redis client factory."""
-
 from __future__ import annotations
 
 from redis.asyncio.client import Redis

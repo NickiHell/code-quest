@@ -1,5 +1,3 @@
-"""Use case: evaluate submitted code with an AI provider."""
-
 from __future__ import annotations
 
 from src.core.interfaces.ai_provider import AbstractAIProvider

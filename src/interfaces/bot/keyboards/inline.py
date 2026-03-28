@@ -1,5 +1,3 @@
-"""Inline-клавиатуры: только Mini App (внутри Telegram)."""
-
 from __future__ import annotations
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo

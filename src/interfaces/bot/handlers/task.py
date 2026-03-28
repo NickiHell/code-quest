@@ -1,5 +1,3 @@
-"""Фолбэк в личке; в группах молчим, чтобы не спамить."""
-
 from __future__ import annotations
 
 from aiogram import F, Router

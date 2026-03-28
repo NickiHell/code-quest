@@ -1,5 +1,3 @@
-"""Промпты и разбор JSON квиза."""
-
 from __future__ import annotations
 
 import json
@@ -13,6 +11,37 @@ from src.infrastructure.ai.json_extract import extract_json_object
 logger = logging.getLogger(__name__)
 _JSON_LOG_PREVIEW_LEN: Final[int] = 400
 
+# Строки из истории вопросов, которые нельзя подставлять в промпт: модель Yandex может
+# отказаться от всего запроса, если увидит, например, «контр-БПЛА» (ПВО), даже в блоке avoid.
+_SEEN_QUESTION_SKIP_SUBSTRINGS: Final[tuple[str, ...]] = (
+    "контр-бпл",
+    "контр бпл",
+    "контрбпл",
+    "противодрон",
+    "counter-uas",
+    "counter uas",
+    "радиопомех",
+)
+
+QUIZ_GENERATION_SYSTEM_INSTRUCTIONS: Final[str] = (
+    "Ты помощник образовательного приложения с тестами (школьники, студенты, курсы). "
+    "На каждый запрос отвечай только одним JSON-объектом в точности по схеме из запроса. "
+    "Не отказывайся от безопасных учебных тем из запроса; не выводи текст вне JSON."
+)
+
+
+def _filter_seen_questions_for_prompt(seen: list[str] | None) -> list[str] | None:
+    """Убрать из списка avoid формулировки, провоцирующие отказ модели при подстановке в промпт."""
+    if not seen:
+        return None
+    out: list[str] = []
+    for q in seen:
+        low = q.lower()
+        if any(s in low for s in _SEEN_QUESTION_SKIP_SUBSTRINGS):
+            continue
+        out.append(q)
+    return out or None
+
 
 def build_evaluate_code_prompt(code: str, task_description: str) -> str:
     """Промпт для ревью кода."""
@@ -24,27 +53,8 @@ def build_evaluate_code_prompt(code: str, task_description: str) -> str:
     )
 
 
-_ALLOWED_TOPICS = {
-    "python",
-    "javascript",
-    "algorithms",
-    "data_structures",
-    "chess",
-    "go",
-    "land_navigation",
-    "fishing",
-    "car_repair",
-    "uavs",
-    "military_tactics",
-    "reb",
-    "lrs",
-    "flight_controllers",
-    "aerodynamics",
-    "engineering_management",
-    "startup_capitalization",
-}
+_ALLOWED_TOPICS = frozenset({"python", "algorithms", "data_structures"})
 
-# Конкретные аспекты — Python случайно выберет один и вставит в промпт
 _TOPIC_ASPECTS: dict[str, list[str]] = {
     "python": [
         "built-in functions: len, map, filter, zip, enumerate, sorted, any, all, min, max",
@@ -83,28 +93,6 @@ _TOPIC_ASPECTS: dict[str, list[str]] = {
         "computational complexity: P vs NP, amortised analysis",
         "randomised algorithms: reservoir sampling, Fisher-Yates shuffle",
     ],
-    "javascript": [
-        "closures, scope chain, and the IIFE pattern",
-        "prototype chain, Object.create, and class syntax under the hood",
-        "event loop, call stack, microtask queue, macrotask queue",
-        "Promises: .then/.catch/.finally, Promise.all/race/allSettled/any",
-        "async/await and error handling with try/catch",
-        "this binding: call, apply, bind, arrow functions vs regular functions",
-        "hoisting: var/let/const differences, temporal dead zone",
-        "destructuring assignment: arrays, objects, default values, renaming",
-        "spread and rest operators (...)",
-        "WeakMap, WeakSet, WeakRef and garbage collection implications",
-        "Symbol, well-known symbols (Symbol.iterator, Symbol.toPrimitive)",
-        "generators and iterators: function*, yield, for...of",
-        "Proxy and Reflect APIs",
-        "type coercion and equality: == vs ===, truthy/falsy values",
-        "Array methods: map, filter, reduce, flat, flatMap, find, findIndex, at",
-        "Object methods: Object.keys/values/entries, Object.assign, Object.freeze",
-        "module system: ES modules (import/export) vs CommonJS (require)",
-        "error types: TypeError, ReferenceError, SyntaxError, RangeError",
-        "timers: setTimeout, setInterval, clearTimeout, event loop interaction",
-        "Fetch API and XMLHttpRequest: response handling, AbortController",
-    ],
     "data_structures": [
         "dynamic arrays: resizing strategy and amortised O(1) append",
         "singly and doubly linked lists: insert, delete, reverse, cycle detection",
@@ -120,238 +108,6 @@ _TOPIC_ASPECTS: dict[str, list[str]] = {
         "Fenwick tree (BIT): prefix sums, point updates",
         "LRU cache: combining hash map and doubly-linked list",
         "bloom filter: probabilistic membership, false positive rate",
-    ],
-    "chess": [
-        "piece movement rules: how each piece moves and captures",
-        "special moves: castling (kingside/queenside), en passant, pawn promotion",
-        "check, checkmate, and stalemate: definitions and examples",
-        "basic openings: e4/e5, d4/d5, Sicilian Defence, French Defence, Ruy López",
-        "opening principles: center control, piece development, king safety",
-        "tactical motifs: fork, pin, skewer, discovered attack, double check",
-        "combination patterns: back-rank mate, smothered mate, Greco's mate",
-        "endgame fundamentals: king and pawn endings, opposition, key squares",
-        "rook endgames: Lucena position, Philidor position",
-        "piece values and exchange: when to trade pieces",
-        "pawn structure: isolated pawn, doubled pawn, passed pawn, pawn chain",
-        "positional concepts: outpost, weak square, open file, bishop pair",
-        "notation: algebraic notation, reading and writing chess moves",
-        "time control and clock rules: touch-move, illegal move penalties",
-        "draw conditions: threefold repetition, fifty-move rule, insufficient material",
-        "FIDE rating system: Elo calculation, categories (CM, FM, IM, GM)",
-    ],
-    "go": [
-        "basic rules: stone placement, liberties, capture",
-        "ko rule: why it exists and how it works",
-        "territory and scoring: area scoring vs territory scoring, komi",
-        "life and death: two eyes, unconditional life, seki (mutual life)",
-        "corner, side, and center: relative importance of board areas",
-        "joseki: common corner sequences and their purpose",
-        "fuseki: whole-board opening strategy, common opening patterns",
-        "handicap stones: how they work and their strategic implications",
-        "connectivity: cutting and connecting groups",
-        "influence and thickness: building influence vs territory",
-        "tesuji: tactical tricks — ladder, net (geta), snapback, squeeze",
-        "ladder (shicho): what it is, when it works, ladder breakers",
-        "net (geta): how to capture stones with a net",
-        "reducing and invading: when to reduce vs invade opponent's moyo",
-        "endgame (yose): sente vs gote moves, counting endgame value",
-        "rank system: kyu and dan ranks, online rating systems (ELO, Glicko)",
-    ],
-    "land_navigation": [
-        "map reading: scale, legend, contour lines, relief shading",
-        "compass use: magnetic north vs true north, declination correction",
-        "orienteering symbols: vegetation, water, buildings, paths (IOF symbols)",
-        "bearing and azimuth: taking and following a bearing",
-        "resection and triangulation: finding position from known landmarks",
-        "pace counting and distance estimation on terrain",
-        "GPS vs map-and-compass: when to trust each, limitations",
-        "terrain association: matching map to ground, attack points, catching features",
-        "route choice: considering elevation, vegetation, linear features",
-        "night navigation: limited visibility, headlamp use, pacing",
-        "weather impact on terrain: fog, rain, snow, river crossings",
-        "safety: telling someone your plan, emergency kit, SOS",
-        "MGRS/UTM coordinates: reading grid references",
-        "orienteering competition: start procedure, punching controls, course types",
-        "star navigation basics: finding Polaris, Southern Cross (overview)",
-        "dead reckoning: errors accumulate, when to reset position",
-    ],
-    "fishing": [
-        "freshwater vs saltwater species and habitats",
-        "rod types: spinning, casting, fly, feeder — when to use which",
-        "reels: spinning vs baitcasting, drag system, line capacity",
-        "fishing line: monofilament vs fluorocarbon vs braided — pros and cons",
-        "hooks: sizes, barbed vs barbless, circle hooks",
-        "natural baits vs artificial lures: worms, minnows, soft plastics, crankbaits",
-        "fly fishing: dry fly, nymph, streamer, matching the hatch",
-        "ice fishing: safety on ice, augers, tip-ups",
-        "reading water: depth, structure, current seams, eddies",
-        "seasons and fish behaviour: spawning, feeding windows",
-        "knots: improved clinch, Palomar, uni knot, loop knots",
-        "regulations: catch limits, size limits, closed seasons, licences",
-        "catch and release: handling fish, barotrauma in deep water",
-        "boat fishing basics: anchoring, trolling, fish finders (overview)",
-        "filleting and food safety: freshness, ice, parasites in raw fish",
-    ],
-    "car_repair": [
-        "engine basics: four-stroke cycle, ignition, fuel injection vs carburetor",
-        "cooling system: thermostat, radiator, coolant types, overheating diagnosis",
-        "lubrication: oil grades, viscosity, change intervals, filter",
-        "brakes: disc vs drum, pads, rotors, brake fluid, ABS basics",
-        "suspension: struts, shocks, springs, alignment symptoms",
-        "electrical: battery, alternator, starter, fuses, relays",
-        "tires: pressure, tread depth, rotation, balancing, TPMS",
-        "OBD-II: reading codes, common P-codes meaning (overview)",
-        "timing belt vs chain: replacement intervals, interference engines",
-        "transmission: manual vs automatic fluid, clutch wear signs",
-        "exhaust: catalytic converter, lambda sensor, emissions",
-        "HVAC: AC recharge, cabin filter, defrost",
-        "DIY safety: jack stands, torque wrench, ESD when disconnecting battery",
-        "hybrid and EV basics: high voltage safety, 12V battery, charging",
-        "common tools: socket sets, torque specs, thread repair (helicoil overview)",
-    ],
-    "uavs": [
-        "multicopter vs fixed-wing UAV: thrust, stall, endurance trade-offs",
-        "propeller and motor basics: KV, pitch, ESC, LiPo cell count and C-rating",
-        "flight modes: GPS hold, attitude, altitude, return-to-home (RTH)",
-        "sensors: IMU, barometer, magnetometer, GPS — what each corrects",
-        "geofencing, no-fly zones, altitude limits in civil aviation",
-        "registration and licensing (overview): when UAV requires pilot credentials",
-        "battery safety: storage voltage, charging, fire risk, damaged cells",
-        "link and control: RC vs digital link, failsafe behaviour, loss of signal",
-        "camera gimbals: 2-axis vs 3-axis, rolling shutter vs global shutter",
-        "mission planning: waypoints, survey grids, overlap in photogrammetry",
-        "weather limits: wind, rain, gusts vs UAV class",
-        "payload weight and centre of gravity effects on flight",
-        "FPV basics: latency, goggles, OSD, line-of-sight rules",
-        "detect-and-avoid concepts (overview): ADS-B, sense, BVLOS research",
-        "counter-UAS and legal interception (high-level regulatory concepts only)",
-        "agricultural and inspection use cases: multispectral, thermal (overview)",
-    ],
-    "military_tactics": [
-        "levels of war: strategic, operational, tactical — definitions and examples",
-        "offensive vs defensive operations: when each is appropriate",
-        "terrain: key terrain, observation, fields of fire, cover vs concealment",
-        "manoeuvre warfare vs attrition — core ideas",
-        "flanking, envelopment, frontal attack — classic forms of manoeuvre",
-        "defence in depth vs linear defence — trade-offs",
-        "ambush and counter-ambush: principles (historical examples)",
-        "reconnaissance and security: screen, guard, cover in movement",
-        "combined arms: infantry, artillery, armour coordination (conceptual)",
-        "urban operations: challenges of built-up areas (generic principles)",
-        "amphibious and river crossing — planning factors (overview)",
-        "logistics and sustainment: why they constrain tactical options",
-        "command and control: span of control, mission command (conceptual)",
-        "historical battles as case studies: Cannae, encirclement, Fabian strategy (facts only)",
-        "small-unit tactics: fire and movement, bounding overwatch (generic theory)",
-        "NATO vs Warsaw Pact doctrinal differences during Cold War (high-level)",
-        "asymmetric warfare: guerrilla vs conventional — definitions, not how-to",
-    ],
-    "reb": [
-        "РЭБ: задачи подавления, маскировки, разведки в СВЧ-диапазоне (общетеоретически)",
-        "виды воздействия: активное подавление, пассивная маскировка, имитация (принципы)",
-        "помехи по носителю: непрерывная, импульсная, модулированная — идея и применение",
-        "подавление каналов связи и наведения: что обычно защищают (концептуально)",
-        "радиоразведка: перехват, пеленгация, классификация излучений (уровень учебника)",
-        "ЭПР и маскировка: снижение заметности для РЛС (общие принципы)",
-        "ECCM: защита от помех, смена частоты, узкие лучи, кодирование (идеи)",
-        "спектр и полосы: HF/VHF/UHF/SHF — где что применяют в общих чертах",
-        "бортовые и наземные комплексы РЭБ: роли в системе (без ТТХ конкретных изделий)",
-        "правовые рамки гражданского применения: ограничения на глушение связи",
-        "электромагнитная совместимость и уязвимость аппаратуры (общие понятия)",
-        "космический и наземный SIGINT — различие задач (обзорно)",
-        "кибер-РЭБ vs классическая РЭБ — границы терминов",
-        "исторические этапы: от мешков с фольгой до современных комплексов (факты)",
-        "безопасность персонала: излучение, дальность, зоны ограничения (обучающий уровень)",
-        "этика и закон: только образовательный контент, без инструкций по изготовлению помех",
-    ],
-    "lrs": [
-        "радиолокация: импульсный режим, дальность по задержке сигнала",
-        "доплеровский сдвиг частоты и измерение скорости цели",
-        "разрешающая способность по дальности и по углу (принципы)",
-        "диаграмма направленности антенны, ширина луча, усиление",
-        "обзорные и целеуказания РЛС: различие ролей в системе ПВО/навигации (концептуально)",
-        "ФАР: фазированная антенная решётка, электронное сканирование луча",
-        "метеорологические и навигационные РЛС: отличия задач",
-        "СВЧ-диапазоны для локации: поглощение, дождь, зона обзора",
-        "пассивная локация и бистатические схемы (идея)",
-        "маркировка целей: IFF, ответчики, коды (общие принципы)",
-        "подавление боковых лепестков и УБЛ (идея, без расчётов оружия)",
-        "РЛС на БПЛА и авиации: ограничения по массе и энергии",
-        "радиолокационные изображения: SAR, разрешение (обзорно)",
-        "история: магнетрон, ранние РЛС Второй мировой (факты)",
-        "безопасность: облучение, нормы для гражданских радаров (общие сведения)",
-        "только учебный контент: без ТТХ секретных систем и без инструкций по обходу ПВО",
-    ],
-    "flight_controllers": [
-        "роль полётного контроллера: сенсоры → оценка состояния → команды на исполнительные органы",
-        "IMU: гироскопы, акселерометры, магнитометр — что измеряют и какие ошибки типичны",
-        "сведение данных: комплементарный фильтр, Kalman (идея, без вывода формул в ответе)",
-        "контуры PID: rate vs angle, настройка P/I/D на интуитивном уровне",
-        "режимы полёта: стабилизация, удержание высоты, удержание позиции, RTH (принципы)",
-        "PWM, OneShot, DShot — зачем нужны цифровые протоколы к регуляторам",
-        "ESC: частота, направление вращения, синхронизация с мотором",
-        "барометр и удержание высоты: дрейф, вентиляция корпуса",
-        "GPS/ГНСС: точность, частота обновления, RTK (обзорно)",
-        "арминг, failsafe: потеря сигнала, низкий заряд, поведение по умолчанию",
-        "вибрации и шум гироскопа: фильтрация, демпфирование рамы",
-        "калибровка: аксель, магнит, уровень горизонта",
-        "избыточность сенсоров и отказоустойчивость (идея)",
-        "прошивки и стеки: общие отличия open-source стеков (без пошаговых хаков)",
-        "безопасность: пропеллеры, ток, ЛСП — только общие правила, без модификаций под вред",
-        "только образовательный контент: без обхода ограничителей и закона",
-    ],
-    "aerodynamics": [
-        "подъёмная сила: угол атаки, обводы профиля, обрыв потока (учебный уровень)",
-        "профиль крыла: кривизна, угол установки, центр давления vs центр масс",
-        "индуктивное и профильное сопротивление, поляра крыла (идеи)",
-        "число Рейнольдса и режимы обтекания: ламинарный и турбулентный пограничный слой",
-        "скольжение: соотношение крена и скольжения, крутой вираж",
-        "стабильность: продольная, боковая, диэдр крыла, запилёность",
-        "винт/пропеллер: шаг, диаметр, КПД, вихревое кольцо (обзорно)",
-        "вертолётный несущий винт: циклический шаг, соосная схема vs классика (принципы)",
-        "сжимаемость: число Маха, критическое М, звуковой барьер (общие факты)",
-        "спутник и космос: сопло, сверхзвук в сопле (учебно, без ТТХ ракет)",
-        "вихри на крыле: закон Кутты–Жуковского на уровне «что означает»",
-        "поток в трубе и вокруг тела: торможение, разрежение",
-        "авиационные единицы: узлы, футы в минуту, перевод в СИ (задачи)",
-        "безопасность испытаний моделей: только общие принципы",
-        "только учебная аэродинамика: без расчётов оружия и без данных закрытых проектов",
-    ],
-    "engineering_management": [
-        "роли в Agile: Scrum Master, Product Owner, команда разработки — зоны ответственности",
-        "спринт, бэклог, Definition of Done, критерии приёмки — учебные определения",
-        "оценка работ: story points vs часы, планирование, velocity (ограничения метрик)",
-        "code review: культура, конструктивная обратная связь, когда блокировать merge",
-        "технический долг: приоритизация, баланс с фичами, прозрачность для бизнеса",
-        "найм инженеров: структура интервью, проверка навыков vs культурный fit",
-        "one-on-one: цели встреч, обратная связь, карьерные разговоры",
-        "распределённые команды: асинхронность, документация, пересечение часовых поясов",
-        "инциденты и постмортемы: blameless culture, действия после сбоя",
-        "психологическая безопасность и здоровые границы рабочей нагрузки",
-        "карьерные треки: IC vs менеджмент, грейды, менторство",
-        "взаимодействие с продуктом и дизайном: согласование scope, MVP",
-        "метрики разработки: DORA, lead time — что показывают и чего не показывают",
-        "делегирование и эскалация: когда решать самому, когда подключать руководство",
-        "управление ожиданиями стейкхолдеров и коммуникация статуса",
-        "только общеобразовательный контент: без персональных данных, без токсичных практик",
-    ],
-    "startup_capitalization": [
-        "капитализация и стоимость компании: pre-money vs post-money на уровне определений",
-        "каптаблица: акции, доли, разводнение (dilution) при новом раунде",
-        "раунды финансирования: pre-seed, seed, Series A/B — типичные цели (учебно)",
-        "SAFE и конвертируемые займы: идея отложенной оценки, отличия на концептуальном уровне",
-        "опционы и вестинг: cliff, обратный выкуп, мотивация сотрудников",
-        "учредительство: соучредители, доли на старте, соглашения о выходе (общие принципы)",
-        "юридические формы (обзорно): ИП, ООО, акционерное общество — когда что встречается",
-        "налоги и отчётность для малого бизнеса — только общие категории, не персональные советы",
-        "юнит-экономика: CAC, LTV, маржинальность — зачем смотрят инвесторы",
-        "burn rate и runway: планирование денег до следующего раунда",
-        "valuation: сравнительный анализ vs DCF — идеи без расчётов под конкретную сделку",
-        "due diligence: что проверяют при инвестиции (обзорно)",
-        "дивиденды vs реинвестирование прибыли — роли в росте компании",
-        "питч и инвестиционный меморандум: что обычно включают (структура)",
-        "риски стартапа: product-market fit, конкуренция, регуляторика — учебные рамки",
-        "только учебный контент: без персональных юридических и инвестиционных советов",
     ],
 }
 
@@ -370,13 +126,10 @@ def build_quiz_generation_prompt(
     topic: str | None,
     seen_questions: list[str] | None = None,
 ) -> str:
-    """Промпт генерации MCQ по выбранной теме и грейду."""
     topic_key = (topic or "").strip().lower()
     if topic_key not in _ALLOWED_TOPICS:
         topic_key = "python"
 
-    # Выбираем один конкретный аспект на стороне Python — так промпт остаётся коротким
-    # и модели не нужно самой принимать решение о разнообразии
     aspect = random.choice(_TOPIC_ASPECTS[topic_key])
     canon = normalize_quiz_grade(grade)
     grade_hint = _GRADE_HINTS.get(canon, f"сложность: {grade}")
@@ -403,23 +156,10 @@ def build_quiz_generation_prompt(
             "различиями, где уместно.\n"
         )
 
-    edu_safety = ""
-    if topic_key in (
-        "uavs",
-        "military_tactics",
-        "reb",
-        "lrs",
-        "flight_controllers",
-        "aerodynamics",
-    ):
-        edu_safety = (
-            "- Educational, neutral content only (theory, history, regulations, technology). "
-            "No instructions for harm, no extremism, no facilitation of illegal activity.\n"
-        )
-
+    seen_safe = _filter_seen_questions_for_prompt(seen_questions)
     avoid_block = ""
-    if seen_questions:
-        items = "\n".join(f"- {q}" for q in seen_questions)
+    if seen_safe:
+        items = "\n".join(f"- {q}" for q in seen_safe)
         avoid_block = f"\nDo NOT repeat or rephrase these already-asked questions:\n{items}\n"
 
     code_hint = (
@@ -434,7 +174,6 @@ def build_quiz_generation_prompt(
         f"Level: {grade_hint}\n"
         f"{avoid_block}\n"
         "Rules:\n"
-        f"{edu_safety}"
         "- All text (question and options) must be in Russian.\n"
         f"{level_rules}"
         "- You MUST output exactly 5 options: one correct and four wrong answers.\n"

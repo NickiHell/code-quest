@@ -1,5 +1,3 @@
-"""Сборка топа Redis + профили пользователей."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

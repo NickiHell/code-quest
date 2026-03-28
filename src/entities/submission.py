@@ -1,5 +1,3 @@
-"""User submission for a task."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

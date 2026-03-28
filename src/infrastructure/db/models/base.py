@@ -1,5 +1,3 @@
-"""Declarative base for ORM models."""
-
 from __future__ import annotations
 
 from sqlalchemy.orm import DeclarativeBase

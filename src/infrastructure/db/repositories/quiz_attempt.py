@@ -1,5 +1,3 @@
-"""SQLAlchemy: quiz_attempts."""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime

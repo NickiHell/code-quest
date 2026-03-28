@@ -1,5 +1,3 @@
-"""Leaderboard persistence port (Redis-backed implementation in infrastructure)."""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

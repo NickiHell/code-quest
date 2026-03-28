@@ -1,5 +1,3 @@
-"""Извлечение JSON из ответа LLM (в т.ч. с markdown-ограждением)."""
-
 from __future__ import annotations
 
 import json

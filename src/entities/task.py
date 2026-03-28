@@ -1,5 +1,3 @@
-"""Programming task definition."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

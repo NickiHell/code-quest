@@ -1,5 +1,3 @@
-"""User aggregate (pure data)."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

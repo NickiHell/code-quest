@@ -1,1 +1,0 @@
-"""Code Quest application package."""

@@ -1,5 +1,3 @@
-"""Глобальный лог ошибок диспетчера и краткое уведомление пользователю."""
-
 from __future__ import annotations
 
 from aiogram import Bot, Router

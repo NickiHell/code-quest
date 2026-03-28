@@ -16,7 +16,7 @@
       rel="stylesheet"
     />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="styles.css?v=18" />
+    <link rel="stylesheet" href="styles.css?v=21" />
   </head>
   <body>
     <a class="skip-link" href="#quiz-card">К квизу</a>
@@ -25,11 +25,9 @@
         <p class="eyebrow">Квиз</p>
         <h1 id="app-title">Code Quest</h1>
         <p class="lede">
-          Код, логика, <strong>шахматы</strong>, <strong>го</strong>, навигация, рыбалка, авто,
-          <strong>БПЛА</strong>, <strong>военная тактика</strong>, <strong>РЭБ</strong>, <strong>ЛРС</strong>,
-          <strong>полётные контроллеры</strong>, <strong>аэродинамика</strong> — выберите тему и сложность,
-          ответьте на вопрос (обычно <strong>5 вариантов</strong>). Очки: <strong>+5</strong> / <strong>+10</strong> /
-          <strong>+50</strong> по сложности (лёгкий / средний / эксперт).
+          <strong>Python</strong>, <strong>структуры данных</strong> и <strong>алгоритмы</strong> — выберите тему и
+          сложность, ответьте на вопрос (обычно <strong>5 вариантов</strong>). Очки:
+          <strong>+5</strong> / <strong>+10</strong> / <strong>+50</strong> (лёгкий / средний / эксперт).
         </p>
       </header>
 
@@ -62,53 +60,11 @@
               <button type="button" class="topic-chip" data-topic="python" role="radio" aria-checked="true">
                 Python
               </button>
-              <button type="button" class="topic-chip" data-topic="javascript" role="radio" aria-checked="false">
-                JavaScript
-              </button>
-              <button type="button" class="topic-chip" data-topic="algorithms" role="radio" aria-checked="false">
-                Алгоритмы
-              </button>
               <button type="button" class="topic-chip" data-topic="data_structures" role="radio" aria-checked="false">
                 Структуры данных
               </button>
-              <button type="button" class="topic-chip" data-topic="engineering_management" role="radio" aria-checked="false">
-                Команда разработки
-              </button>
-              <button type="button" class="topic-chip" data-topic="startup_capitalization" role="radio" aria-checked="false">
-                Компания и капитализация
-              </button>
-              <button type="button" class="topic-chip" data-topic="chess" role="radio" aria-checked="false">
-                Шахматы
-              </button>
-              <button type="button" class="topic-chip" data-topic="go" role="radio" aria-checked="false">
-                Го
-              </button>
-              <button type="button" class="topic-chip" data-topic="land_navigation" role="radio" aria-checked="false">
-                Навигация
-              </button>
-              <button type="button" class="topic-chip" data-topic="fishing" role="radio" aria-checked="false">
-                Рыбалка
-              </button>
-              <button type="button" class="topic-chip" data-topic="car_repair" role="radio" aria-checked="false">
-                Авто
-              </button>
-              <button type="button" class="topic-chip" data-topic="uavs" role="radio" aria-checked="false">
-                БПЛА
-              </button>
-              <button type="button" class="topic-chip" data-topic="military_tactics" role="radio" aria-checked="false">
-                Военная тактика
-              </button>
-              <button type="button" class="topic-chip" data-topic="reb" role="radio" aria-checked="false">
-                РЭБ
-              </button>
-              <button type="button" class="topic-chip" data-topic="lrs" role="radio" aria-checked="false">
-                ЛРС
-              </button>
-              <button type="button" class="topic-chip" data-topic="flight_controllers" role="radio" aria-checked="false">
-                Полётные контроллеры
-              </button>
-              <button type="button" class="topic-chip" data-topic="aerodynamics" role="radio" aria-checked="false">
-                Аэродинамика
+              <button type="button" class="topic-chip" data-topic="algorithms" role="radio" aria-checked="false">
+                Алгоритмы
               </button>
             </div>
           </div>
@@ -148,7 +104,7 @@
             aria-atomic="false"
           >
             <p class="quiz-body__hint">
-              Выберите тему и грейд, нажмите «Новый вопрос». ИИ генерирует вопрос — это займёт несколько секунд.
+              Выберите тему и сложность, нажмите «Новый вопрос». ИИ генерирует вопрос — это займёт несколько секунд.
             </p>
           </div>
           <div id="quiz-options" class="options-grid" hidden></div>
@@ -159,6 +115,31 @@
             role="status"
             aria-live="polite"
           ></div>
+        </section>
+
+        <section class="card" id="task-card" aria-labelledby="task-heading">
+          <div class="card__head card__head--row">
+            <div>
+              <h2 id="task-heading">Задача дня</h2>
+              <p class="card__sub">Решение и краткий разбор от ИИ</p>
+            </div>
+            <button type="button" class="btn btn--ghost" id="btn-task-load">
+              <span class="btn__label">Загрузить задачу</span>
+              <span class="btn__spinner" hidden aria-hidden="true"></span>
+            </button>
+          </div>
+          <div id="task-body" class="task-body muted">
+            <p>Загрузите условие задачи на сегодня (нужен вход через Telegram Mini App).</p>
+          </div>
+          <div id="task-editor" class="task-editor" hidden>
+            <label class="field__label" for="task-code">Ваш код</label>
+            <textarea id="task-code" class="task-code" rows="10" spellcheck="false" placeholder="Вставьте код..."></textarea>
+            <button type="button" class="btn btn--primary" id="btn-task-submit">
+              <span class="btn__label">Отправить на проверку</span>
+              <span class="btn__spinner" hidden aria-hidden="true"></span>
+            </button>
+          </div>
+          <div id="task-result" class="quiz-result" hidden role="status" aria-live="polite"></div>
         </section>
 
         <section class="card" id="leaderboard-card" aria-labelledby="lb-heading">
@@ -183,6 +164,6 @@
         <p id="hint" class="footer__hint"></p>
       </footer>
     </div>
-    <script type="module" src="app.js?v=18"></script>
+    <script type="module" src="app.js?v=21"></script>
   </body>
 </html>

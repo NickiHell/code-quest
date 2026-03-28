@@ -1,5 +1,3 @@
-"""MCQ quiz API."""
-
 from __future__ import annotations
 
 import logging
@@ -7,10 +5,13 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.core.exceptions import DomainError, ExternalServiceError, NotFoundError
+from src.entities.telegram_webapp import WebAppUser
 from src.interfaces.api.deps import (
     get_leaderboard_view_use_case,
     get_next_quiz_use_case,
     get_submit_quiz_use_case,
+    get_webapp_user_quiz_answer,
+    get_webapp_user_quiz_next,
 )
 from src.interfaces.api.schemas.quiz import (
     LeaderboardEntryResponse,
@@ -31,13 +32,14 @@ router = APIRouter(prefix="/api", tags=["quiz"])
 @router.post("/quiz/next", response_model=QuizQuestionResponse, status_code=status.HTTP_201_CREATED)
 async def next_question(
     body: NextQuizRequest,
+    web_user: WebAppUser = Depends(get_webapp_user_quiz_next),
     use_case: NextQuizUseCase = Depends(get_next_quiz_use_case),
 ) -> QuizQuestionResponse:
     """Сгенерировать и сохранить вопрос, вернуть варианты без правильного индекса."""
     try:
         q = await use_case.execute(
-            telegram_id=body.telegram_id,
-            username=body.username,
+            telegram_id=web_user.telegram_id,
+            username=web_user.username,
             grade=body.grade.value,
             topic=body.topic,
         )
@@ -65,12 +67,13 @@ async def next_question(
 @router.post("/quiz/answer", response_model=QuizResultResponse)
 async def submit_answer(
     body: SubmitQuizRequest,
+    web_user: WebAppUser = Depends(get_webapp_user_quiz_answer),
     use_case: SubmitQuizUseCase = Depends(get_submit_quiz_use_case),
 ) -> QuizResultResponse:
     """Проверить выбранный вариант и начислить очки."""
     try:
         attempt = await use_case.execute(
-            telegram_id=body.telegram_id,
+            telegram_id=web_user.telegram_id,
             question_id=body.question_id,
             chosen_index=body.chosen_index,
         )

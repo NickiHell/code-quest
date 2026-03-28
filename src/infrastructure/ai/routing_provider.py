@@ -1,5 +1,3 @@
-"""Делегирование в зарегистрированный Yandex-бэкенд; override в Redis."""
-
 from __future__ import annotations
 
 import logging

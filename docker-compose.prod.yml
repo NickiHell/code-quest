@@ -1,0 +1,77 @@
+# docker compose -f docker-compose.prod.yml up --build -d
+
+services:
+  api:
+    build: .
+    env_file: .env
+    environment:
+      PYTHONPATH: /app
+      APP_ENV: production
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - codequest_logs:/app/logs
+    networks:
+      - codequest
+
+  bot:
+    build: .
+    command: ["python", "-m", "src.interfaces.bot.loader"]
+    env_file: .env
+    environment:
+      PYTHONPATH: /app
+      APP_ENV: production
+    depends_on:
+      api:
+        condition: service_started
+      db:
+        condition: service_healthy
+    volumes:
+      - codequest_logs:/app/logs
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    networks:
+      - codequest
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: codequest
+      POSTGRES_PASSWORD: codequest
+      POSTGRES_DB: codequest
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - codequest
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codequest"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - codequest
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  codequest:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  codequest_logs:

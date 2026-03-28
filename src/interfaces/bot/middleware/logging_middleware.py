@@ -1,5 +1,3 @@
-"""Логирование входящих событий Telegram для отладки «бот молчит»."""
-
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable

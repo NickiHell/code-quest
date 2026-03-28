@@ -1,5 +1,3 @@
-"""Redis sorted-set leaderboard."""
-
 from __future__ import annotations
 
 from redis.asyncio.client import Redis

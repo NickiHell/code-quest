@@ -1,5 +1,3 @@
-"""Проверка ответа MCQ, объяснение ИИ, очки и лидерборд."""
-
 from __future__ import annotations
 
 import logging

@@ -1,5 +1,3 @@
-"""Repository contracts (ports) — implementations live in infrastructure."""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

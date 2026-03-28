@@ -1,0 +1,41 @@
+from __future__ import annotations
+
+from src.core.config import Settings
+from src.interfaces.bot.keyboards.inline import group_menu_inline, private_menu_inline
+from src.interfaces.bot.keyboards.main import main_menu_keyboard
+
+
+def _cfg() -> Settings:
+    return Settings(
+        secret_key="x" * 16,
+        database_url="sqlite+aiosqlite:///:memory:",
+        redis_url="redis://localhost:6379/0",
+        bot_token="1234567890:ABCDEF-test",
+        webapp_url="https://example.com/m/",
+        public_base_url="https://example.com",
+        yandex_folder_id="f",
+        yandex_auth="k",
+    )
+
+
+def test_group_menu_inline_with_username_uses_tme() -> None:
+    kb = group_menu_inline(_cfg(), bot_username="@mybot")
+    assert "t.me/mybot" in kb.inline_keyboard[0][0].url
+
+
+def test_group_menu_inline_without_username_falls_back() -> None:
+    kb = group_menu_inline(_cfg(), bot_username=None)
+    assert kb.inline_keyboard[0][0].url.startswith("https://")
+
+
+def test_private_menu_inline_has_web_app() -> None:
+    kb = private_menu_inline(_cfg())
+    btn = kb.inline_keyboard[0][0]
+    assert btn.web_app is not None
+    assert "example.com" in btn.web_app.url
+
+
+def test_main_menu_keyboard_uses_passed_settings() -> None:
+    kb = main_menu_keyboard(_cfg())
+    assert kb.keyboard[0][0].web_app is not None
+    assert "Mini App" in kb.keyboard[0][0].text

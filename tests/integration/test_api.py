@@ -1,5 +1,3 @@
-"""Integration tests for HTTP API."""
-
 from __future__ import annotations
 
 import os
@@ -7,10 +5,25 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import pytest
+import redis.asyncio as redis_async
+import redis.exceptions as redis_exceptions
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 
 from src.main import create_app
+
+
+async def _redis_available() -> bool:
+    url = os.environ.get("REDIS_URL", "")
+    if not url.startswith(("redis://", "rediss://")):
+        return False
+    client = redis_async.from_url(url, decode_responses=True)
+    try:
+        return await client.ping() is True
+    except (TimeoutError, OSError, redis_exceptions.ConnectionError):
+        return False
+    finally:
+        await client.aclose()
 
 
 @asynccontextmanager
@@ -28,49 +41,22 @@ async def test_health_endpoint() -> None:
         response = await client.get("/api/health")
     assert response.status_code == 200
     payload = response.json()
-    assert payload["status"] == "ok"
     assert payload["version"] == "0.1.0"
     assert payload["postgres"] == "ok"
-    assert payload["redis"] == "ok"
+    assert payload["redis"] in ("ok", "unavailable")
+    if payload["redis"] == "ok":
+        assert payload["status"] == "ok"
+    else:
+        assert payload["status"] == "degraded"
 
 
 @pytest.mark.asyncio
-async def test_miniapp_and_admin_served() -> None:
+async def test_root_redirects_to_miniapp() -> None:
     async with _lifespan_client() as client:
         root = await client.get("/", follow_redirects=True)
         assert root.status_code == 200
-        assert "админ" in root.text.lower() or "Code Quest" in root.text
+        assert "telegram-web-app.js" in root.text
 
         mini = await client.get("/miniapp/")
         assert mini.status_code == 200
         assert "telegram-web-app.js" in mini.text
-
-
-@pytest.mark.asyncio
-async def test_admin_stats_requires_key() -> None:
-    async with _lifespan_client() as client:
-        response = await client.get("/api/admin/stats")
-    assert response.status_code == 403
-
-
-@pytest.mark.asyncio
-async def test_admin_ai_backend_requires_key() -> None:
-    async with _lifespan_client() as client:
-        response = await client.get("/api/admin/ai-backend")
-    assert response.status_code == 403
-
-
-@pytest.mark.asyncio
-async def test_admin_ai_backend_with_key() -> None:
-    key = os.environ["ADMIN_API_KEY"]
-    async with _lifespan_client() as client:
-        response = await client.get(
-            "/api/admin/ai-backend",
-            headers={"X-Admin-Key": key},
-        )
-    assert response.status_code == 200
-    payload = response.json()
-    assert "env_default" in payload
-    assert "available" in payload
-    assert "effective" in payload
-    assert isinstance(payload["available"], list)

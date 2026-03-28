@@ -1,5 +1,3 @@
-"""Тесты начисления очков за квиз (одна зачётная попытка на вопрос)."""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime

@@ -1,5 +1,3 @@
-"""FastAPI application factory."""
-
 from __future__ import annotations
 
 import logging
@@ -19,13 +17,12 @@ from src.infrastructure.ai.routing_provider import RoutingAIProvider
 from src.infrastructure.db.session import create_engine, create_session_factory
 from src.infrastructure.logging_config import configure_loguru
 from src.infrastructure.redis.client import create_redis_client
-from src.interfaces.api.routes import admin, health, quiz, submissions, tasks, users
+from src.interfaces.api.routes import health, quiz, submissions, tasks, users
 
 logger = logging.getLogger(__name__)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    """Build the ASGI application with wiring and middleware."""
     settings = settings or Settings()
 
     @asynccontextmanager
@@ -89,12 +86,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(submissions.router)
     app.include_router(tasks.router)
     app.include_router(users.router)
-    app.include_router(admin.router)
     app.include_router(quiz.router)
 
     static_root = Path(__file__).resolve().parent.parent / "static"
     miniapp_root = static_root / "miniapp"
-    admin_root = static_root / "admin"
 
     if miniapp_root.is_dir():
         app.mount(
@@ -105,18 +100,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     else:
         logger.warning("Mini App static dir missing: %s", miniapp_root)
 
-    if admin_root.is_dir():
-        app.mount(
-            "/admin",
-            StaticFiles(directory=str(admin_root), html=True),
-            name="admin",
-        )
-    else:
-        logger.warning("Admin static dir missing: %s", admin_root)
-
     @app.get("/", include_in_schema=False)
     async def root_redirect() -> RedirectResponse:
-        """Корень: веб-панель (управление/статистика). Mini App — /miniapp/."""
-        return RedirectResponse(url="/admin/", status_code=307)
+        return RedirectResponse(url="/miniapp/", status_code=307)
 
     return app

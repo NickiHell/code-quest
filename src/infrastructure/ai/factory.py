@@ -1,5 +1,3 @@
-"""Фабрика провайдера ИИ по настройкам."""
-
 from __future__ import annotations
 
 import logging

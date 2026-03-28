@@ -1,5 +1,3 @@
-"""Режим LLM: только Yandex Cloud."""
-
 from __future__ import annotations
 
 from enum import StrEnum

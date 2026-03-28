@@ -1,5 +1,3 @@
-"""SQLAlchemy implementation of AbstractSubmissionRepository."""
-
 from __future__ import annotations
 
 from sqlalchemy import desc, select
