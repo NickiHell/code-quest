@@ -8,6 +8,27 @@ import tempfile
 from collections.abc import AsyncIterator
 from unittest.mock import AsyncMock
 
+os.environ.setdefault("SECRET_KEY", "test-secret-key-please-change")
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
+os.environ.setdefault("BOT_TOKEN", "1234567890:ABCDEF-test-token")
+os.environ.setdefault("WEBAPP_URL", "https://example.com/miniapp/")
+os.environ.setdefault("PUBLIC_BASE_URL", "https://example.com")
+os.environ.setdefault("LOG_DIR", "")
+os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "0123456789abcdef")
+os.environ.setdefault("TELEGRAM_SET_WEBHOOK_ON_STARTUP", "false")
+
+for _k, _v in (
+    ("YANDEX_FOLDER_ID", "test-folder"),
+    ("YANDEX_AUTH", "test-yandex-auth"),
+    ("YANDEX_ASSISTANT_ID", "test-assistant-id"),
+):
+    if not os.environ.get(_k, "").strip():
+        os.environ[_k] = _v
+
+_fd, _TEST_DB_PATH = tempfile.mkstemp(suffix=".codequest-test.sqlite")
+os.close(_fd)
+os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_TEST_DB_PATH}"
+
 import pytest
 import redis.asyncio as redis_async
 from sqlalchemy.ext.asyncio import (
@@ -26,19 +47,6 @@ from src.infrastructure.db.models import submission as submission_model  # noqa:
 from src.infrastructure.db.models import task as task_model  # noqa: F401
 from src.infrastructure.db.models import user as user_model  # noqa: F401
 from src.infrastructure.db.models.base import Base
-
-os.environ.setdefault("SECRET_KEY", "test-secret-key-please-change")
-os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
-os.environ.setdefault("BOT_TOKEN", "1234567890:ABCDEF-test-token")
-os.environ.setdefault("WEBAPP_URL", "https://example.com/miniapp/")
-os.environ.setdefault("PUBLIC_BASE_URL", "https://example.com")
-os.environ.setdefault("LOG_DIR", "")
-os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "0123456789abcdef")
-os.environ.setdefault("TELEGRAM_SET_WEBHOOK_ON_STARTUP", "false")
-
-_fd, _TEST_DB_PATH = tempfile.mkstemp(suffix=".codequest-test.sqlite")
-os.close(_fd)
-os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_TEST_DB_PATH}"
 
 
 def _cleanup_test_db() -> None:

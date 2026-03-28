@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from celery import Celery
 
-from src.core.config import Settings
-
-_settings = Settings()
+from src.core.config import celery_broker_url_from_environ
 
 celery_app = Celery(
     "codequest",
-    broker=_settings.celery_broker_url,
+    broker=celery_broker_url_from_environ(),
     backend=None,
 )
 

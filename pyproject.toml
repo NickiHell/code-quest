@@ -85,6 +85,7 @@ ignore = [
 "src/interfaces/bot/loader.py" = ["BLE001"]
 "src/main.py" = ["PLR0915"]
 "src/infrastructure/tasks/jobs.py" = ["ANN001"]
+"tests/conftest.py" = ["E402"]
 "tests/**/*.py" = [
     "ANN",
     "ARG001",

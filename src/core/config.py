@@ -169,5 +169,17 @@ def _redis_url_with_db_index(redis_url: str, db_index: int) -> str:
     return urlunparse(parsed._replace(path=f"/{db_index}"))
 
 
+def celery_broker_url_from_environ() -> str:
+    """URL брокера Celery из env без конструирования Settings (ранний import)."""
+    explicit = os.environ.get("CELERY_BROKER_URL", "").strip()
+    if explicit:
+        return explicit
+    redis_url = os.environ.get("REDIS_URL", "").strip()
+    if not redis_url:
+        msg = "REDIS_URL or CELERY_BROKER_URL must be set for Celery"
+        raise ValueError(msg)
+    return _redis_url_with_db_index(redis_url, 1)
+
+
 def migration_database_url(settings: Settings) -> str:
     return str(settings.database_url_direct or settings.database_url)
