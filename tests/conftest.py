@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+import atexit
+import contextlib
 import os
+import tempfile
 from collections.abc import AsyncIterator
 from unittest.mock import AsyncMock
 
@@ -15,6 +19,7 @@ from sqlalchemy.ext.asyncio import (
 
 from src.core.interfaces.ai_provider import AbstractAIProvider
 from src.entities.quiz import QuizQuestionData
+from src.infrastructure.db.models import background_job as background_job_model  # noqa: F401
 from src.infrastructure.db.models import quiz_attempt as quiz_attempt_model  # noqa: F401
 from src.infrastructure.db.models import quiz_question as quiz_question_model  # noqa: F401
 from src.infrastructure.db.models import submission as submission_model  # noqa: F401
@@ -23,12 +28,40 @@ from src.infrastructure.db.models import user as user_model  # noqa: F401
 from src.infrastructure.db.models.base import Base
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-please-change")
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
 os.environ.setdefault("BOT_TOKEN", "1234567890:ABCDEF-test-token")
 os.environ.setdefault("WEBAPP_URL", "https://example.com/miniapp/")
 os.environ.setdefault("PUBLIC_BASE_URL", "https://example.com")
 os.environ.setdefault("LOG_DIR", "")
+os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "0123456789abcdef")
+os.environ.setdefault("TELEGRAM_SET_WEBHOOK_ON_STARTUP", "false")
+
+_fd, _TEST_DB_PATH = tempfile.mkstemp(suffix=".codequest-test.sqlite")
+os.close(_fd)
+os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_TEST_DB_PATH}"
+
+
+def _cleanup_test_db() -> None:
+    with contextlib.suppress(OSError):
+        os.unlink(_TEST_DB_PATH)
+
+
+atexit.register(_cleanup_test_db)
+
+
+def _init_shared_db_schema() -> None:
+    """Один файл SQLite для интеграции API + фоновых задач (Celery в тестах мокается)."""
+
+    async def go() -> None:
+        engine = create_async_engine(os.environ["DATABASE_URL"])
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        await engine.dispose()
+
+    asyncio.run(go())
+
+
+_init_shared_db_schema()
 
 
 @pytest.fixture

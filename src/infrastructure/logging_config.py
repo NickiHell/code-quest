@@ -22,8 +22,6 @@ _DEV_ENVS: Final[frozenset[str]] = frozenset({"development", "dev", "local"})
 
 
 class InterceptHandler(logging.Handler):
-    """Пересылает записи stdlib `logging` в loguru (один формат в stderr)."""
-
     def emit(self, record: logging.LogRecord) -> None:
         try:
             level: str | int = logger.level(record.levelname).name
@@ -50,12 +48,6 @@ def configure_loguru(
     colorize: bool | None = None,
     log_dir: str | None = "logs",
 ) -> None:
-    """Настроить loguru и перехватить logging для библиотек с классическим API.
-
-    В TTY — цвета и разделители; в pipe/Docker — плоский текст без ANSI.
-    В development для исключений включается diagnose (переменные в стеке).
-    Файл ``{log_dir}/app.log`` с ротацией при достижении 100 МБ (если ``log_dir`` не пустой).
-    """
     log_level = level.upper()
     numeric = getattr(logging, log_level, logging.INFO)
     use_color = sys.stderr.isatty() if colorize is None else colorize
@@ -128,5 +120,4 @@ def configure_loguru(
     for name in _LOGGERS_QUIET:
         logging.getLogger(name).setLevel(logging.WARNING)
 
-    # Без echo в engine SQL всё равно может сыпаться на INFO — тише для читаемых логов.
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)

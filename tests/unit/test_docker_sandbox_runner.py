@@ -17,6 +17,7 @@ def _minimal_settings() -> Settings:
         bot_token="1234567890:ABCDEF-test",
         webapp_url="https://example.com/m/",
         public_base_url="https://example.com",
+        telegram_webhook_secret="0123456789abcdef",
         ai_backend=AiBackend.yandex_gpt,
     )
 

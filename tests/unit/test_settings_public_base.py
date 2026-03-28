@@ -12,6 +12,7 @@ def test_public_base_url_strips_path_to_origin() -> None:
             "bot_token": "1234567890:ABCDEF-test-token",
             "webapp_url": "https://example.com/miniapp/",
             "public_base_url": "https://example.com/miniapp/",
+            "telegram_webhook_secret": "0123456789abcdef",
         },
     )
     assert str(s.public_base_url).rstrip("/") == "https://example.com"

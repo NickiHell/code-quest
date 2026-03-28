@@ -5,6 +5,10 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from aiogram import Bot
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramAPIError
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -17,7 +21,17 @@ from src.infrastructure.ai.routing_provider import RoutingAIProvider
 from src.infrastructure.db.session import create_engine, create_session_factory
 from src.infrastructure.logging_config import configure_loguru
 from src.infrastructure.redis.client import create_redis_client
-from src.interfaces.api.routes import health, quiz, submissions, tasks, users
+from src.interfaces.api.routes import (
+    health,
+    jobs,
+    quiz,
+    submissions,
+    tasks,
+    telegram_webhook,
+    users,
+)
+from src.interfaces.bot.dispatcher_setup import build_dispatcher
+from src.interfaces.bot.setup import setup_bot_profile
 
 logger = logging.getLogger(__name__)
 
@@ -58,10 +72,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.yandex_client = yandex_client
         app.state.ai_service = ai_service
 
+        telegram_bot = Bot(
+            token=settings.bot_token,
+            default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+        )
+        telegram_dp = build_dispatcher()
+        app.state.telegram_bot = telegram_bot
+        app.state.telegram_dp = telegram_dp
+
+        if settings.telegram_set_webhook_on_startup:
+            try:
+                await setup_bot_profile(telegram_bot, settings)
+                base = str(settings.public_base_url).rstrip("/")
+                wh_url = f"{base}/webhook/telegram/{settings.telegram_webhook_secret}"
+                await telegram_bot.set_webhook(url=wh_url, drop_pending_updates=False)
+                logger.info("telegram webhook registered: %s", wh_url)
+            except (TelegramAPIError, OSError) as exc:
+                logger.warning("telegram set_webhook / profile failed: %s", exc)
+        else:
+            logger.info("telegram_set_webhook_on_startup=false — webhook не регистрируется")
+
         logger.info("starting api (env=%s, ai_backend=%s)", settings.app_env, settings.ai_backend)
         yield
         if yandex_client is not None:
             await yandex_client.close()
+        await telegram_bot.session.close()
         await redis.aclose()  # type: ignore[attr-defined]
         await engine.dispose()
         logger.info("api shutdown complete")
@@ -83,6 +118,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     app.include_router(health.router)
+    app.include_router(telegram_webhook.router)
+    app.include_router(jobs.router)
     app.include_router(submissions.router)
     app.include_router(tasks.router)
     app.include_router(users.router)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from typing import Any, Self
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse, urlunparse
 
 from pydantic import Field, HttpUrl, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,9 +24,14 @@ class Settings(BaseSettings):
     log_dir: str = Field(default="logs")
 
     database_url: str
+    database_url_direct: str | None = None
     redis_url: str
+    celery_broker_url: str | None = None
 
     bot_token: str = Field(..., min_length=10)
+
+    telegram_webhook_secret: str = Field(..., min_length=16)
+    telegram_set_webhook_on_startup: bool = Field(default=True)
     telegram_init_data_max_age_seconds: int = Field(default=86400, ge=0, le=604800)
     rate_limit_quiz_next_per_minute: int = Field(default=10, ge=1)
     rate_limit_quiz_answer_per_minute: int = Field(default=60, ge=1)
@@ -77,6 +82,26 @@ class Settings(BaseSettings):
             raise ValueError(msg)
         return value
 
+    @field_validator("database_url_direct", mode="before")
+    @classmethod
+    def empty_database_url_direct_to_none(cls, value: object) -> object:
+        if value is None:
+            return None
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("database_url_direct")
+    @classmethod
+    def validate_database_url_direct(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        allowed = ("postgresql+asyncpg://", "sqlite+aiosqlite://")
+        if not any(value.startswith(prefix) for prefix in allowed):
+            msg = "DATABASE_URL_DIRECT must start with postgresql+asyncpg:// or sqlite+aiosqlite://"
+            raise ValueError(msg)
+        return value
+
     @field_validator("redis_url")
     @classmethod
     def validate_redis_url(cls, value: str) -> str:
@@ -105,6 +130,14 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def default_celery_broker(self) -> Self:
+        if self.celery_broker_url is not None:
+            return self
+        return self.model_copy(
+            update={"celery_broker_url": _redis_url_with_db_index(self.redis_url, 1)},
+        )
+
+    @model_validator(mode="after")
     def validate_ai_backend_fields(self) -> Self:
         if self.ai_backend == AiBackend.yandex_gpt:
             if not self.yandex_folder_id or not self.yandex_auth:
@@ -129,3 +162,12 @@ class Settings(BaseSettings):
             )
             raise ValueError(msg)
         return self
+
+
+def _redis_url_with_db_index(redis_url: str, db_index: int) -> str:
+    parsed: ParseResult = urlparse(redis_url)
+    return urlunparse(parsed._replace(path=f"/{db_index}"))
+
+
+def migration_database_url(settings: Settings) -> str:
+    return str(settings.database_url_direct or settings.database_url)

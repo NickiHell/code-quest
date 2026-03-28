@@ -20,6 +20,7 @@ from src.core.interfaces.repositories import (
     AbstractUserRepository,
 )
 from src.entities.telegram_webapp import WebAppUser
+from src.infrastructure.db.repositories.background_job import SQLAlchemyBackgroundJobRepository
 from src.infrastructure.db.repositories.quiz_attempt import SQLAlchemyQuizAttemptRepository
 from src.infrastructure.db.repositories.quiz_question import SQLAlchemyQuizQuestionRepository
 from src.infrastructure.db.repositories.submission import SQLAlchemySubmissionRepository
@@ -38,7 +39,6 @@ from src.use_cases.submit_quiz import SubmitQuizUseCase
 
 
 async def get_db_session(request: Request) -> AsyncGenerator[AsyncSession, None]:
-    """Yield a request-scoped database session with commit/rollback."""
     factory: async_sessionmaker[AsyncSession] = request.app.state.session_factory
     async with factory() as session:
         try:
@@ -50,12 +50,10 @@ async def get_db_session(request: Request) -> AsyncGenerator[AsyncSession, None]
 
 
 async def get_redis(request: Request) -> Redis:  # type: ignore[type-arg]
-    """Return the shared async Redis client."""
     return request.app.state.redis  # type: ignore[no-any-return]
 
 
 async def get_ai_service(request: Request) -> AbstractAIProvider:
-    """Return the configured AI provider."""
     service: AbstractAIProvider = request.app.state.ai_service
     return service
 
@@ -63,26 +61,28 @@ async def get_ai_service(request: Request) -> AbstractAIProvider:
 async def get_user_repository(
     session: AsyncSession = Depends(get_db_session),
 ) -> AbstractUserRepository:
-    """User repository bound to the current session."""
     return SQLAlchemyUserRepository(session)
 
 
 async def get_task_repository(
     session: AsyncSession = Depends(get_db_session),
 ) -> AbstractTaskRepository:
-    """Task repository bound to the current session."""
     return SQLAlchemyTaskRepository(session)
 
 
 async def get_submission_repository(
     session: AsyncSession = Depends(get_db_session),
 ) -> AbstractSubmissionRepository:
-    """Submission repository bound to the current session."""
     return SQLAlchemySubmissionRepository(session)
 
 
+async def get_background_job_repo(
+    session: AsyncSession = Depends(get_db_session),
+) -> SQLAlchemyBackgroundJobRepository:
+    return SQLAlchemyBackgroundJobRepository(session)
+
+
 async def get_leaderboard(redis: Redis = Depends(get_redis)) -> AbstractLeaderboard:  # type: ignore[type-arg]
-    """Redis-backed leaderboard."""
     return RedisLeaderboard(redis)
 
 
@@ -93,7 +93,6 @@ async def get_create_submission_use_case(
     ai: AbstractAIProvider = Depends(get_ai_service),
     leaderboard: AbstractLeaderboard = Depends(get_leaderboard),
 ) -> CreateSubmissionUseCase:
-    """Orchestrator for submission creation."""
     return CreateSubmissionUseCase(
         tasks=tasks,
         users=users,
@@ -106,14 +105,12 @@ async def get_create_submission_use_case(
 async def get_quiz_question_repository(
     session: AsyncSession = Depends(get_db_session),
 ) -> AbstractQuizQuestionRepository:
-    """Quiz questions persistence."""
     return SQLAlchemyQuizQuestionRepository(session)
 
 
 async def get_quiz_attempt_repository(
     session: AsyncSession = Depends(get_db_session),
 ) -> AbstractQuizAttemptRepository:
-    """Quiz attempts persistence."""
     return SQLAlchemyQuizAttemptRepository(session)
 
 
@@ -123,7 +120,6 @@ async def get_next_quiz_use_case(
     ai: AbstractAIProvider = Depends(get_ai_service),
     redis: Redis = Depends(get_redis),  # type: ignore[type-arg]
 ) -> NextQuizUseCase:
-    """Сгенерировать следующий вопрос."""
     return NextQuizUseCase(users=users, questions=questions, ai=ai, redis=redis)
 
 
@@ -134,7 +130,6 @@ async def get_submit_quiz_use_case(
     ai: AbstractAIProvider = Depends(get_ai_service),
     leaderboard: AbstractLeaderboard = Depends(get_leaderboard),
 ) -> SubmitQuizUseCase:
-    """Отправка ответа на MCQ."""
     return SubmitQuizUseCase(
         users=users,
         questions=questions,
@@ -148,7 +143,6 @@ async def get_leaderboard_view_use_case(
     users: AbstractUserRepository = Depends(get_user_repository),
     leaderboard: AbstractLeaderboard = Depends(get_leaderboard),
 ) -> LeaderboardViewUseCase:
-    """Топ лидеров с именами."""
     return LeaderboardViewUseCase(users=users, leaderboard=leaderboard)
 
 
@@ -170,7 +164,6 @@ async def get_webapp_user(
     request: Request,
     init_raw: str = Depends(_extract_init_data_raw),
 ) -> WebAppUser:
-    """Проверка подписи Mini App; пользователь не доверяет телу JSON."""
     settings: Settings = request.app.state.settings
     try:
         return parse_and_validate_init_data(
@@ -236,5 +229,4 @@ async def get_webapp_user_submission(
 async def get_webapp_user_tasks_daily(
     user: WebAppUser = Depends(get_webapp_user),
 ) -> WebAppUser:
-    """Чтение задачи дня — только для идентифицированных пользователей Mini App."""
     return user

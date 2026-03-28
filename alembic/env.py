@@ -10,7 +10,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from src.core.config import Settings
+from src.core.config import Settings, migration_database_url
+from src.infrastructure.db.models.background_job import BackgroundJobModel  # noqa: F401
 from src.infrastructure.db.models.base import Base
 from src.infrastructure.db.models.quiz_attempt import QuizAttemptModel  # noqa: F401
 from src.infrastructure.db.models.quiz_question import QuizQuestionModel  # noqa: F401
@@ -27,8 +28,8 @@ target_metadata = Base.metadata
 
 
 def get_database_url() -> str:
-    """Resolve DB URL from application settings (not committed secrets)."""
-    return str(Settings().database_url)
+    """Alembic: прямой Postgres (DATABASE_URL_DIRECT) или тот же URL что и runtime."""
+    return migration_database_url(Settings())
 
 
 def run_migrations_offline() -> None:
@@ -57,7 +58,7 @@ async def run_async_migrations() -> None:
     """Run migrations in 'online' mode using an async engine."""
     settings = Settings()
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = str(settings.database_url)
+    configuration["sqlalchemy.url"] = migration_database_url(settings)
 
     connectable = async_engine_from_config(
         configuration,

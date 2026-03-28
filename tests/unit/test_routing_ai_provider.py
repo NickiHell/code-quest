@@ -18,6 +18,7 @@ def _settings(**kwargs: object) -> Settings:
         "bot_token": "1234567890:ABCDEF-test",
         "webapp_url": "https://example.com/m/",
         "public_base_url": "https://example.com",
+        "telegram_webhook_secret": "0123456789abcdef",
         "ai_backend": AiBackend.yandex_gpt,
     }
     base.update(kwargs)

@@ -111,6 +111,105 @@ async function fetchJson(path, options = {}) {
   return res.json();
 }
 
+function absoluteUrl(statusPath) {
+  if (!statusPath) return statusPath;
+  if (statusPath.startsWith("http://") || statusPath.startsWith("https://")) return statusPath;
+  const base = window.location.origin || "";
+  const p = statusPath.startsWith("/") ? statusPath : `/${statusPath}`;
+  return `${base}${p}`;
+}
+
+/**
+ * POST с телом JSON; при 202 опрашивает GET status_url до succeeded/failed.
+ * Возвращает payload из result.data (формат фоновых задач API).
+ */
+async function postJsonThenPollJob(path, options = {}) {
+  const {
+    headers: userHeaders,
+    timeoutMs,
+    requireTelegramAuth,
+    pollTimeoutMs,
+    body,
+    ...rest
+  } = options;
+  const ctrl = new AbortController();
+  const t =
+    typeof timeoutMs === "number" && timeoutMs > 0
+      ? setTimeout(() => ctrl.abort(), timeoutMs)
+      : null;
+  const tgH = requireTelegramAuth ? telegramAuthHeaders() : {};
+  const res = await fetch(path, {
+    method: "POST",
+    ...rest,
+    body,
+    signal: ctrl.signal,
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...tgH,
+      ...userHeaders,
+    },
+  }).finally(() => {
+    if (t) clearTimeout(t);
+  });
+  if (res.status === 401) {
+    throw new Error(
+      "Сессия Telegram недействительна или устарела. Закройте Mini App и откройте снова из бота.",
+    );
+  }
+  if (res.status === 429) {
+    const text = await res.text();
+    throw new Error(text || "Слишком много запросов. Подождите около минуты.");
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${res.status} ${text}`);
+  }
+  if (res.status !== 202) {
+    return res.json();
+  }
+  const accepted = await res.json();
+  const statusUrl = absoluteUrl(accepted.status_url);
+  const maxWait = typeof pollTimeoutMs === "number" && pollTimeoutMs > 0 ? pollTimeoutMs : 120000;
+  const start = Date.now();
+  let interval = 400;
+  while (Date.now() - start < maxWait) {
+    const c2 = new AbortController();
+    const t2 = setTimeout(() => c2.abort(), 30000);
+    try {
+      const r2 = await fetch(statusUrl, {
+        method: "GET",
+        signal: c2.signal,
+        headers: {
+          Accept: "application/json",
+          ...tgH,
+        },
+      });
+      if (r2.status === 401) {
+        throw new Error(
+          "Сессия Telegram недействительна или устарела. Закройте Mini App и откройте снова из бота.",
+        );
+      }
+      if (r2.ok) {
+        const st = await r2.json();
+        if (st.status === "succeeded") {
+          const inner = st.result;
+          if (inner && typeof inner === "object" && inner.data != null) return inner.data;
+          return inner;
+        }
+        if (st.status === "failed") {
+          throw new Error(st.error || "Задача не выполнена");
+        }
+      }
+    } finally {
+      clearTimeout(t2);
+    }
+    await new Promise((r) => setTimeout(r, interval));
+    interval = Math.min(interval + 200, 2000);
+  }
+  throw new Error("Превышено время ожидания ответа сервера");
+}
+
 function setText(id, html) {
   const el = document.getElementById(id);
   if (el) el.innerHTML = html;
@@ -432,13 +531,13 @@ async function submitAnswer(chosenIndex) {
   showThinking(resultEl);
 
   try {
-    const data = await fetchJson("/api/quiz/answer", {
-      method: "POST",
+    const data = await postJsonThenPollJob("/api/quiz/answer", {
       requireTelegramAuth: true,
       body: JSON.stringify({
         question_id: currentQuestionId,
         chosen_index: chosenIndex,
       }),
+      pollTimeoutMs: 120000,
     });
     if (resultEl) {
       resultEl.hidden = false;
@@ -519,14 +618,14 @@ async function loadNextQuestion() {
       renderTelegramIdError();
       return;
     }
-    const data = await fetchJson("/api/quiz/next", {
-      method: "POST",
+    const data = await postJsonThenPollJob("/api/quiz/next", {
       timeoutMs: 120000,
       requireTelegramAuth: true,
       body: JSON.stringify({
         grade,
         topic,
       }),
+      pollTimeoutMs: 120000,
     });
     renderQuestion(data);
   } catch (e) {
@@ -597,14 +696,14 @@ async function submitDailyTask() {
   if (!code.trim()) return;
   setButtonLoading(btn, true);
   try {
-    const data = await fetchJson("/api/submissions/", {
-      method: "POST",
+    const data = await postJsonThenPollJob("/api/submissions/", {
       requireTelegramAuth: true,
       timeoutMs: 120000,
       body: JSON.stringify({
         task_id: currentDailyTaskId,
         code,
       }),
+      pollTimeoutMs: 120000,
     });
     if (result) {
       result.hidden = false;

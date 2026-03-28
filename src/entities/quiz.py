@@ -6,7 +6,6 @@ from typing import Final
 
 MCQ_OPTION_COUNT: Final[int] = 5
 
-# Бывшие junior / middle / senior — для строк в БД и API
 _LEGACY_GRADE_TO_CANONICAL: Final[dict[str, str]] = {
     "junior": "easy",
     "middle": "medium",
@@ -15,15 +14,12 @@ _LEGACY_GRADE_TO_CANONICAL: Final[dict[str, str]] = {
 
 
 def normalize_quiz_grade(grade: str) -> str:
-    """Привести уровень сложности к каноническому виду (easy/medium/expert)."""
     g = grade.strip().lower()
     return _LEGACY_GRADE_TO_CANONICAL.get(g, g)
 
 
 @dataclass(frozen=True)
 class QuizQuestionData:
-    """Полные данные вопроса (включая правильный индекс) — только на сервере."""
-
     question_text: str
     options: tuple[str, ...]
     correct_index: int
@@ -40,8 +36,6 @@ class QuizQuestionData:
 
 @dataclass(frozen=True)
 class QuizEvaluationResult:
-    """Результат проверки ответа."""
-
     is_correct: bool
     score: int
     feedback: str
@@ -49,8 +43,6 @@ class QuizEvaluationResult:
 
 @dataclass(frozen=True)
 class QuizQuestionPublic:
-    """Вопрос для клиента (без правильного индекса)."""
-
     id: int
     question_number: int
     question_text: str
@@ -60,8 +52,6 @@ class QuizQuestionPublic:
 
 @dataclass(frozen=True)
 class QuizAttempt:
-    """Сохранённая попытка."""
-
     id: int | None
     user_id: int
     question_id: int

@@ -1,6 +1,17 @@
-# docker compose -f docker-compose.prod.yml up --build -d
-
 services:
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      DATABASE_URL: postgres://codequest:codequest@db:5432/codequest
+      POOL_MODE: session
+      MAX_CLIENT_CONN: 500
+      DEFAULT_POOL_SIZE: 25
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - codequest
+
   api:
     build: .
     env_file: .env
@@ -10,6 +21,8 @@ services:
     ports:
       - "8000:8000"
     depends_on:
+      pgbouncer:
+        condition: service_started
       db:
         condition: service_healthy
       redis:
@@ -19,23 +32,31 @@ services:
     networks:
       - codequest
 
-  bot:
+  celery_worker:
     build: .
-    command: ["python", "-m", "src.interfaces.bot.loader"]
+    command:
+      [
+        "celery",
+        "-A",
+        "src.infrastructure.celery_app",
+        "worker",
+        "--loglevel=info",
+        "-Q",
+        "codequest",
+      ]
     env_file: .env
     environment:
       PYTHONPATH: /app
       APP_ENV: production
     depends_on:
-      api:
+      pgbouncer:
         condition: service_started
+      redis:
+        condition: service_healthy
       db:
         condition: service_healthy
     volumes:
       - codequest_logs:/app/logs
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
     networks:
       - codequest
 

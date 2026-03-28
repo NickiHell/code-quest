@@ -11,8 +11,6 @@ from src.infrastructure.ai.json_extract import extract_json_object
 logger = logging.getLogger(__name__)
 _JSON_LOG_PREVIEW_LEN: Final[int] = 400
 
-# Строки из истории вопросов, которые нельзя подставлять в промпт: модель Yandex может
-# отказаться от всего запроса, если увидит, например, «контр-БПЛА» (ПВО), даже в блоке avoid.
 _SEEN_QUESTION_SKIP_SUBSTRINGS: Final[tuple[str, ...]] = (
     "контр-бпл",
     "контр бпл",
@@ -31,7 +29,6 @@ QUIZ_GENERATION_SYSTEM_INSTRUCTIONS: Final[str] = (
 
 
 def _filter_seen_questions_for_prompt(seen: list[str] | None) -> list[str] | None:
-    """Убрать из списка avoid формулировки, провоцирующие отказ модели при подстановке в промпт."""
     if not seen:
         return None
     out: list[str] = []
@@ -44,7 +41,6 @@ def _filter_seen_questions_for_prompt(seen: list[str] | None) -> list[str] | Non
 
 
 def build_evaluate_code_prompt(code: str, task_description: str) -> str:
-    """Промпт для ревью кода."""
     return (
         f"You are a strict code reviewer.\n\n"
         f"Task:\n{task_description}\n\n"
@@ -130,7 +126,7 @@ def build_quiz_generation_prompt(
     if topic_key not in _ALLOWED_TOPICS:
         topic_key = "python"
 
-    aspect = random.choice(_TOPIC_ASPECTS[topic_key])
+    aspect = random.choice(_TOPIC_ASPECTS[topic_key])  # nosec B311  # noqa: S311
     canon = normalize_quiz_grade(grade)
     grade_hint = _GRADE_HINTS.get(canon, f"сложность: {grade}")
 
@@ -193,7 +189,6 @@ def build_quiz_explain_prompt(
     correct_index: int,
     chosen_index: int,
 ) -> str:
-    """Промпт объяснения выбора по-русски."""
     opts_lines = "\n".join(f"{i}. {options[i]}" for i in range(len(options)))
     return (
         "Ты ментор по программированию. Пользователь выбрал один вариант ответа.\n"
@@ -206,7 +201,6 @@ def build_quiz_explain_prompt(
 
 
 def parse_quiz_json(raw: str, *, default_grade: str) -> QuizQuestionData:
-    """Разобрать ответ модели в QuizQuestionData."""
     try:
         data = extract_json_object(raw)
     except (json.JSONDecodeError, TypeError, ValueError) as exc:
@@ -219,7 +213,6 @@ def parse_quiz_json(raw: str, *, default_grade: str) -> QuizQuestionData:
 
 
 def quiz_data_from_dict(data: dict[str, Any], *, default_grade: str) -> QuizQuestionData:
-    """Проверить структуру dict и собрать QuizQuestionData."""
     q = str(data.get("question_text", "")).strip()
     opts = data.get("options")
     ci = data.get("correct_index")

@@ -10,10 +10,7 @@ from src.interfaces.bot.user_error_feedback import (
     should_notify_user,
 )
 
-router = Router(name="errors")
 
-
-@router.errors()
 async def log_dispatcher_error(event: ErrorEvent, bot: Bot) -> bool:
     """Логируем исключение; пользователю — коротко и без внутренностей."""
     uid = event.update.update_id if event.update else None
@@ -25,3 +22,10 @@ async def log_dispatcher_error(event: ErrorEvent, bot: Bot) -> bool:
     text = brief_user_message(event.exception)
     await notify_user_about_error(bot, event.update, text)
     return True
+
+
+def mount_error_handlers(root: Router) -> None:
+    """Новый Router на каждый Dispatcher (не шарим один router между приложениями)."""
+    r = Router(name="errors")
+    r.errors.register(log_dispatcher_error)
+    root.include_router(r)

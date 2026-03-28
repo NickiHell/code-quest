@@ -18,6 +18,7 @@ def _settings_with_yandex() -> Settings:
         bot_token="1234567890:ABCDEF-test",
         webapp_url="https://example.com/m/",
         public_base_url="https://example.com",
+        telegram_webhook_secret="0123456789abcdef",
         yandex_folder_id="folder",
         yandex_auth="key",
         yandex_assistant_id="asst",

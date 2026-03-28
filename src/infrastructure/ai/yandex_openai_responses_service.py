@@ -42,7 +42,9 @@ class YandexOpenAIResponsesService(AbstractAIProvider):
         *,
         client: AsyncOpenAI,
     ) -> YandexOpenAIResponsesService:
-        assert settings.yandex_folder_id is not None
+        if settings.yandex_folder_id is None:
+            msg = "yandex_folder_id is required"
+            raise ValueError(msg)
         model = settings.yandex_openai_model.strip()
         model_uri = model if "://" in model else f"gpt://{settings.yandex_folder_id}/{model}"
         return cls(

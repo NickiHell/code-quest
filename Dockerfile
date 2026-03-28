@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 FROM python:3.11-slim AS builder
 WORKDIR /app
-RUN pip install --no-cache-dir --upgrade pip uv
 COPY pyproject.toml ./
-RUN uv export --format requirements-txt --no-dev > requirements.txt
-RUN pip install --no-cache-dir --target=/install -r requirements.txt
+RUN pip install --no-cache-dir pip==25.0.1 uv==0.6.14 \
+    && uv export --format requirements-txt --no-dev > requirements.txt \
+    && pip install --no-cache-dir --target=/install -r requirements.txt
 
 FROM python:3.11-slim
 WORKDIR /app

@@ -9,14 +9,11 @@ from src.core.config import Settings
 from src.interfaces.bot.keyboards.inline import group_menu_inline, private_menu_inline
 from src.interfaces.bot.keyboards.main import main_menu_keyboard
 
-router = Router(name="menu")
-
 
 def _is_group(message: Message) -> bool:
     return message.chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
 
 
-@router.message(Command("app"))
 async def cmd_app(message: Message, bot: Bot) -> None:
     """Кнопки Mini App."""
     settings = Settings()
@@ -51,3 +48,9 @@ async def cmd_app(message: Message, bot: Bot) -> None:
             "Или пользуйтесь клавиатурой внизу:",
             reply_markup=main_menu_keyboard(settings),
         )
+
+
+def mount_menu_handlers(root: Router) -> None:
+    r = Router(name="menu")
+    r.message.register(cmd_app, Command("app"))
+    root.include_router(r)

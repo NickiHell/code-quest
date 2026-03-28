@@ -28,9 +28,12 @@ class YandexAIStudioAgentService(AbstractAIProvider):
 
     @classmethod
     def from_settings(cls, settings: Settings) -> YandexAIStudioAgentService:
-        assert settings.yandex_folder_id is not None
-        assert settings.yandex_auth is not None
-        assert settings.yandex_assistant_id is not None
+        if settings.yandex_folder_id is None or settings.yandex_auth is None:
+            msg = "yandex_folder_id and yandex_auth are required"
+            raise ValueError(msg)
+        if settings.yandex_assistant_id is None:
+            msg = "yandex_assistant_id is required"
+            raise ValueError(msg)
         sdk = AsyncAIStudio(
             folder_id=settings.yandex_folder_id,
             auth=settings.yandex_auth,

@@ -31,22 +31,29 @@ services:
     networks:
       - codequest
 
-  bot:
+  celery_worker:
     build: .
-    command: ["python", "-m", "src.interfaces.bot.loader"]
+    command:
+      [
+        "celery",
+        "-A",
+        "src.infrastructure.celery_app",
+        "worker",
+        "--loglevel=info",
+        "-Q",
+        "codequest",
+      ]
     env_file: .env
     environment:
       PYTHONPATH: /app
-    volumes:
-      - ./logs:/app/logs
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
     depends_on:
-      api:
-        condition: service_started
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
     networks:
       - codequest
 

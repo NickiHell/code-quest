@@ -8,10 +8,7 @@ from src.core.config import Settings
 from src.interfaces.bot.keyboards.inline import group_menu_inline
 from src.interfaces.bot.keyboards.main import main_menu_keyboard
 
-router = Router(name="start")
 
-
-@router.message(CommandStart(), F.chat.type == "private")
 async def handle_start_private(message: Message) -> None:
     """Приветствие в личке: reply-клавиатура с Web App."""
     settings = Settings()
@@ -25,7 +22,6 @@ async def handle_start_private(message: Message) -> None:
     )
 
 
-@router.message(CommandStart(), F.chat.type.in_({"group", "supergroup"}))
 async def handle_start_group(message: Message, bot: Bot) -> None:
     """Кратко в группе + inline (Mini App)."""
     settings = Settings()
@@ -36,3 +32,10 @@ async def handle_start_group(message: Message, bot: Bot) -> None:
         "<b>внутри Telegram</b> (t.me).",
         reply_markup=group_menu_inline(settings, bot_username=me.username),
     )
+
+
+def mount_start_handlers(root: Router) -> None:
+    r = Router(name="start")
+    r.message.register(handle_start_private, CommandStart(), F.chat.type == "private")
+    r.message.register(handle_start_group, CommandStart(), F.chat.type.in_({"group", "supergroup"}))
+    root.include_router(r)

@@ -11,11 +11,21 @@ from src.core.config import Settings
 
 
 def create_engine(settings: Settings) -> AsyncEngine:
-    """Build an async engine for PostgreSQL (asyncpg)."""
+    """Build an async engine for PostgreSQL (asyncpg) or SQLite."""
+    url = str(settings.database_url)
+    if url.startswith("sqlite+"):
+        return create_async_engine(
+            url,
+            echo=False,
+            pool_pre_ping=True,
+        )
     return create_async_engine(
-        str(settings.database_url),
+        url,
         echo=False,
         pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10,
+        connect_args={"statement_cache_size": 0},
     )
 
 

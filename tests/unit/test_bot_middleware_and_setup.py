@@ -61,6 +61,7 @@ async def test_setup_bot_profile_success() -> None:
         bot_token="1234567890:ABCDEF-test",
         webapp_url="https://example.com/m/",
         public_base_url="https://example.com",
+        telegram_webhook_secret="0123456789abcdef",
         yandex_folder_id="f",
         yandex_auth="k",
     )
@@ -81,6 +82,7 @@ async def test_setup_bot_profile_logs_on_api_errors() -> None:
         bot_token="1234567890:ABCDEF-test",
         webapp_url="https://example.com/m/",
         public_base_url="https://example.com",
+        telegram_webhook_secret="0123456789abcdef",
         yandex_folder_id="f",
         yandex_auth="k",
     )
