@@ -69,41 +69,39 @@ async def _client_with_overrides(
     app.dependency_overrides.clear()
 
 
+@pytest.mark.parametrize(
+    ("path", "user_dep", "json_body"),
+    [
+        (
+            "/api/quiz/next",
+            get_webapp_user_quiz_next,
+            {"grade": "easy", "topic": "python"},
+        ),
+        (
+            "/api/quiz/answer",
+            get_webapp_user_quiz_answer,
+            {"question_id": 2, "chosen_index": 0},
+        ),
+    ],
+)
 @pytest.mark.asyncio
-async def test_quiz_next_returns_202_and_enqueues() -> None:
+async def test_quiz_async_returns_202_enqueues_job(
+    path: str,
+    user_dep: Callable[..., Any],
+    json_body: dict[str, object],
+) -> None:
     async def _user() -> WebAppUser:
         return WebAppUser(telegram_id=1, username="u", first_name=None, last_name=None)
 
     with patch("src.interfaces.api.job_enqueue.run_background_job") as m_task:
         m_task.delay = MagicMock()
-        async with _client_with_overrides({get_webapp_user_quiz_next: _user}) as client:
-            r = await client.post(
-                "/api/quiz/next",
-                json={"grade": "easy", "topic": "python"},
-                headers=_auth_headers(),
-            )
+        async with _client_with_overrides({user_dep: _user}) as client:
+            r = await client.post(path, json=json_body, headers=_auth_headers())
     assert r.status_code == 202
     body = r.json()
     assert "job_id" in body
     assert body["status_url"] == f"/api/jobs/{body['job_id']}"
     m_task.delay.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_quiz_answer_returns_202_and_enqueues() -> None:
-    async def _user() -> WebAppUser:
-        return WebAppUser(telegram_id=1, username=None, first_name=None, last_name=None)
-
-    with patch("src.interfaces.api.job_enqueue.run_background_job") as m_task:
-        m_task.delay = MagicMock()
-        async with _client_with_overrides({get_webapp_user_quiz_answer: _user}) as client:
-            r = await client.post(
-                "/api/quiz/answer",
-                json={"question_id": 2, "chosen_index": 0},
-                headers=_auth_headers(),
-            )
-    assert r.status_code == 202
-    assert m_task.delay.called
 
 
 @pytest.mark.asyncio

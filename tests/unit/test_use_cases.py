@@ -19,16 +19,28 @@ from src.use_cases.create_submission import CreateSubmissionUseCase
 from src.use_cases.evaluate_code import EvaluateCodeUseCase
 
 
+@pytest.mark.parametrize(
+    ("code", "task_description"),
+    [
+        ("print(1)", "Print one"),
+        ("x = 1 + 2", "Add numbers"),
+        ("def f():\n    pass", "Define a function"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_evaluate_code_delegates_to_ai(mock_ai_service: AbstractAIProvider) -> None:
+async def test_evaluate_code_delegates_to_ai(
+    mock_ai_service: AbstractAIProvider,
+    code: str,
+    task_description: str,
+) -> None:
     use_case = EvaluateCodeUseCase(mock_ai_service)
-    result = await use_case.execute("print(1)", "Print one")
+    result = await use_case.execute(code, task_description)
     assert result == "Excellent solution."
-    mock_ai_service.evaluate_code.assert_awaited_once()
+    mock_ai_service.evaluate_code.assert_awaited_once_with(code, task_description)
 
 
 @pytest.mark.asyncio
-async def test_create_submission_persists_and_updates_leaderboard() -> None:
+async def test_create_submission_loads_task_evaluates_persists_and_scores_leaderboard() -> None:
     task = Task(
         id=1,
         title="Daily",
@@ -88,4 +100,13 @@ async def test_create_submission_persists_and_updates_leaderboard() -> None:
     )
 
     assert result.id == 10
+    tasks.get_by_id.assert_awaited_once_with(1)
+    ai.evaluate_code.assert_awaited_once_with("print('hi')", task.description)
+    submissions.create.assert_awaited_once()
+    create_call = submissions.create.await_args
+    assert create_call is not None
+    draft = create_call.args[0]
+    assert draft.code == "print('hi')"
+    assert draft.task_id == 1
+    assert draft.user_id == 1
     leaderboard.add_score.assert_awaited_once_with(user_id=1, points=10)

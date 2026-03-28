@@ -1,29 +1,13 @@
 from __future__ import annotations
 
-import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import pytest
-import redis.asyncio as redis_async
-import redis.exceptions as redis_exceptions
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 
 from src.main import create_app
-
-
-async def _redis_available() -> bool:
-    url = os.environ.get("REDIS_URL", "")
-    if not url.startswith(("redis://", "rediss://")):
-        return False
-    client = redis_async.from_url(url, decode_responses=True)
-    try:
-        return await client.ping() is True
-    except (TimeoutError, OSError, redis_exceptions.ConnectionError):
-        return False
-    finally:
-        await client.aclose()
 
 
 @asynccontextmanager
@@ -35,12 +19,16 @@ async def _lifespan_client() -> AsyncIterator[AsyncClient]:
             yield client
 
 
+_EXPECTED_HEALTH_KEYS = frozenset({"status", "version", "postgres", "redis"})
+
+
 @pytest.mark.asyncio
-async def test_health_endpoint() -> None:
+async def test_health_endpoint_schema_and_semantics() -> None:
     async with _lifespan_client() as client:
         response = await client.get("/api/health")
     assert response.status_code == 200
     payload = response.json()
+    assert frozenset(payload.keys()) == _EXPECTED_HEALTH_KEYS
     assert payload["version"] == "0.1.0"
     assert payload["postgres"] == "ok"
     assert payload["redis"] in ("ok", "unavailable")
@@ -50,13 +38,11 @@ async def test_health_endpoint() -> None:
         assert payload["status"] == "degraded"
 
 
+@pytest.mark.parametrize("path", ["/", "/miniapp/"])
 @pytest.mark.asyncio
-async def test_root_redirects_to_miniapp() -> None:
+async def test_miniapp_static_serves_web_app_script(path: str) -> None:
     async with _lifespan_client() as client:
-        root = await client.get("/", follow_redirects=True)
-        assert root.status_code == 200
-        assert "telegram-web-app.js" in root.text
-
-        mini = await client.get("/miniapp/")
-        assert mini.status_code == 200
-        assert "telegram-web-app.js" in mini.text
+        r = await client.get(path, follow_redirects=True)
+    assert r.status_code == 200
+    assert "telegram-web-app.js" in r.text
+    assert "text/html" in r.headers.get("content-type", "")
