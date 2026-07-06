@@ -38,7 +38,7 @@ from src.use_cases.next_quiz import NextQuizUseCase
 from src.use_cases.submit_quiz import SubmitQuizUseCase
 
 
-async def get_db_session(request: Request) -> AsyncGenerator[AsyncSession, None]:
+async def get_db_session(request: Request) -> AsyncGenerator[AsyncSession]:
     factory: async_sessionmaker[AsyncSession] = request.app.state.session_factory
     async with factory() as session:
         try:

@@ -11,7 +11,7 @@ from src.interfaces.api.deps import get_db_session, get_redis
 from src.main import create_app
 
 
-async def _bad_db_session() -> AsyncGenerator[AsyncMock, None]:
+async def _bad_db_session() -> AsyncGenerator[AsyncMock]:
     session = AsyncMock()
     session.commit = AsyncMock()
     session.rollback = AsyncMock()

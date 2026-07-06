@@ -1,15 +1,15 @@
 # syntax=docker/dockerfile:1
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 WORKDIR /app
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir pip==25.0.1 uv==0.6.14 \
+COPY pyproject.toml uv.lock ./
+RUN pip install --no-cache-dir pip==25.1.1 uv==0.10.12 \
     && uv export --format requirements-txt --no-dev > requirements.txt \
     && pip install --no-cache-dir --target=/install -r requirements.txt
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 WORKDIR /app
 ENV PYTHONPATH=/app
-COPY --from=builder /install /usr/local/lib/python3.11/site-packages
+COPY --from=builder /install /usr/local/lib/python3.14/site-packages
 COPY src/ ./src/
 COPY static/ ./static/
 COPY alembic/ ./alembic/

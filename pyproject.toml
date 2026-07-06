@@ -3,47 +3,47 @@ name = "code-quest"
 version = "0.1.0"
 description = "Telegram Mini App for programming tasks"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
-    "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.32.0",
-    "sqlalchemy[asyncio]>=2.0.36",
+    "fastapi>=0.139.0",
+    "uvicorn[standard]>=0.50.0",
+    "sqlalchemy[asyncio]>=2.0.51",
     "asyncpg>=0.30.0",
     "redis[hiredis]>=5.2.0",
-    "aiogram>=3.15.0",
+    "aiogram>=3.29.1",
     "httpx>=0.27.0",
-    "pydantic>=2.9.0",
+    "pydantic>=2.13.4",
     "pydantic-settings>=2.14.2",
-    "alembic>=1.14.0",
+    "alembic>=1.18.5",
     "docker>=7.1.0",
     "loguru>=0.7.3",
-    "yandex-ai-studio-sdk>=0.19.2",
-    "openai>=2.29.0",
+    "yandex-ai-studio-sdk>=0.22.0",
+    "openai>=2.44.0",
     "celery[redis]>=5.4.0",
 ]
 
 [dependency-groups]
 dev = [
-    "ruff>=0.7.0",
-    "pytest>=9.0.3",
-    "mypy>=1.13.0",
+    "ruff>=0.15.20",
+    "pytest>=9.1.1",
+    "mypy>=2.1.0",
     "pytest-asyncio>=0.24.0",
     "aiosqlite>=0.20.0",
     "types-redis>=4.6.0",
     "asgi-lifespan>=2.1.0",
-    "pre-commit>=4.5.1",
-    "commitizen>=4.13.9",
+    "pre-commit>=4.6.0",
+    "commitizen>=4.16.4",
     "pytest-cov>=7.1.0",
     "bandit[toml]>=1.8.0",
     "yamllint>=1.38.0",
     "codespell>=2.4.0",
-    "pip-audit>=2.7.0",
+    "pip-audit>=2.10.1",
     "pytest-randomly>=3.15.0",
 ]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [
@@ -118,7 +118,7 @@ suppress-none-returning = true
 known-first-party = ["src"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.14"
 strict = true
 disallow_untyped_defs = true
 disallow_any_generics = true
@@ -145,7 +145,6 @@ module = [
     "openai",
     "openai.*",
     "celery",
-    "celery.*",
 ]
 ignore_missing_imports = true
 

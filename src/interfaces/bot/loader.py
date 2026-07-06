@@ -13,7 +13,7 @@ _INITIAL_BACKOFF_SEC = 5
 _MAX_BACKOFF_SEC = 300
 
 
-async def _wait_for_telegram(
+async def _wait_for_telegram[T](
     label: str,
     call: Callable[[], Awaitable[T]],
 ) -> T:

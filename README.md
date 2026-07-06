@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/NickiHell/code-quest/actions/workflows/ci.yml/badge.svg)](https://github.com/NickiHell/code-quest/actions/workflows/ci.yml)
 
-**Стек:** Python 3.11+, FastAPI, SQLAlchemy 2 async, PostgreSQL, Redis, Aiogram 3, Alembic, uv.
+**Стек:** Python 3.14+, FastAPI, SQLAlchemy 2 async, PostgreSQL, Redis, Aiogram 3, Alembic, uv.
 
 **Структура:** `src/core` — домен и интерфейсы, `src/use_cases` — сценарии, `src/infrastructure` — БД/Redis/LLM, `src/interfaces` — HTTP и бот. Статика Mini App: `static/miniapp/`.
 
